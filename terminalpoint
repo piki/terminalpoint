@@ -481,6 +481,24 @@ class TerminalPoint
 	end
 end
 
+while ARGV.first =~ /^--/
+	quit_now = true
+	arg = ARGV.shift
+	case arg
+		when "--config"
+			CONFIG.each do |key, value|
+				puts "CONFIG[#{key.inspect}] = #{value.inspect}"
+			end
+		when "--colors"
+			COLOR.each do |key, value|
+				puts "COLOR[#{key.inspect}] = #{value.inspect}"
+			end
+		else
+			raise "Unknown argument: #{arg}"
+	end
+end
+exit 0 if quit_now
+		
 tp = TerminalPoint.new
 tp.instance_eval(ARGF.read)
 tp.build
