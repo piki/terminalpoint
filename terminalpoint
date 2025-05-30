@@ -104,7 +104,7 @@ class Bullet < Entry
 	end
 
 	def width
-		@txt.size
+		display_width(@txt)
 	end
 
 	def display(max_content_width)
