@@ -151,9 +151,9 @@ class Slide
 							cell_part = cell_parts[cell_row]
 							more_cell_rows ||= cell_parts.size > cell_row + 1
 							if is_header
-								print fmt(CONFIG['table.header.color'], borrow_formatting(cell_part, cell))
+								print fmt(CONFIG['table.header.color'], borrow_formatting(cell_part, cell_parts[...cell_row]))
 							else
-								print borrow_formatting(cell_part, cell)
+								print borrow_formatting(cell_part, cell_parts[...cell_row])
 							end
 							pad = w + 1 - display_width(cell_part)
 							print " " * pad
@@ -225,14 +225,18 @@ private
 		s.gsub(/\x1b\[[0-9;]+m/, '').size
 	end
 
-	def borrow_formatting(s, basis)
-		if basis =~ /^(\x1b\[[0-9;]+m)/
-			prefix = $1
+	def borrow_formatting(s, parts)
+		if !s.start_with?("\e[")
+			if parts.join(' ') =~ /.*(\e\[[0-9;]+m)/
+				s = $1 + s
+			end
 		end
-		if basis =~ /(\x1b\[[0-9;]+m)$/
-			suffix = $1
+
+		if !s.end_with?("\e[0m")
+			s = s + "\e[0m"
 		end
-		prefix.to_s + s.gsub(/\x1b\[[0-9;]+m/, '') + suffix.to_s
+
+		s
 	end
 
 	def wrap_text(text, max_length)
