@@ -235,7 +235,8 @@ class Table < Entry
 			is_header = false
 		end
 		puts "#{left_pad}╚" + @col_widths.map{|w| "═" * (w+2)}.join("╧") + "╝"
-		lines += 1
+		puts
+		lines += 2
 
 		lines
 	end
