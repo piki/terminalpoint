@@ -74,7 +74,15 @@ slide
 	bullet "Clean slate for new styling"
 
 slide
-	title "Mixed Content"
+	config "title.box", "top bottom"
+	title "Title Box: Top Bottom"
 	bullet "Regular text with #{fmt 'red', '**bold red**'} inline"
 	bullet "`Code blocks` with #{fmt 'blue', 'colored text'} mixed"
 	bullet "Very long lines with #{fmt 'green bold', 'multiple styles applied'} that demonstrate how **markdown** and #{fmt 'magenta', 'color formatting'} work together in wrapped text"
+
+slide
+	config "title.box", "box double"
+	title "Title Box: Double Border"
+	bullet "This title has a double-line box around it"
+	bullet "The box draws attention to important sections"
+	bullet "Perfect for highlighting key topics or sections"
