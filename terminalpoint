@@ -20,6 +20,8 @@ CONFIG = {
 }
 COLOR = {
 	"bold" => "1",
+	"italic" => "3",
+	"underlined" => "4",
 	"red" => "31",
 	"green" => "32",
 	"brown" => "33",
@@ -291,18 +293,18 @@ class Slide
 	end
 
 	def title(s)
-		@entries << Title.new(replace_backticks(s))
+		@entries << Title.new(mini_markdown(s))
 	end
 
 	def bullet(s)
-		@entries << Bullet.new(replace_backticks(s))
+		@entries << Bullet.new(mini_markdown(s))
 	end
 
 	def table(t)
 		@entries << Table.new(
 			t.map {|row|
 				if row.is_a?(Array)
-					row.map{|col| replace_backticks(col)}
+					row.map{|col| mini_markdown(col)}
 				else
 					row
 				end
@@ -319,10 +321,33 @@ class Slide
 	end
 
 private
-	def replace_backticks(s)
-		s.
-			gsub(/`([^`])*`/) { |txt| fmt(CONFIG['code.color'], txt[1..-2]) }.
-			gsub(/~([^~])*~/) { |txt| ansi(9, txt[1..-2]) }
+	# Convert simple markdown formatting to ANSI sequences.  Supported:
+	# **bold**, __bold__, *italics*, _underlines_, and `backticks`
+	def mini_markdown(s)
+		# Backticks prevent other markdown formatting, so we split the string
+		# according to backticks and apply other markdown formatting only
+		# in the even-numbered segments and the last segment.
+		split = s.split(/`/, -1)
+		split = split.each_with_index.map{|tok, i|
+			if i % 2 == 0 || i == split.size - 1
+				tok.
+					gsub(/~([^~]*)~/) { |txt| ansi(9, txt[1..-2]) }.
+					gsub(/\*\*([^*]*)\*\*/) { |txt| ansi(1, txt[2..-3]) }.
+					gsub(/__([^_]*)__/) { |txt| ansi(1, txt[2..-3]) }.
+					gsub(/\*(\w[^*]*)\*/) { |txt| ansi(3, txt[1..-2]) }.
+					gsub(/\b_([^_]*)_\b/) { |txt| ansi(4, txt[1..-2]) }
+			else
+				fmt(CONFIG['code.color'], tok)
+			end
+		}
+
+		# If we had an odd number of backticks, then the last one shows up as
+		# a literal ` character.
+		if split.size % 2 == 0
+			split[..-2].join + "`" + split[-1]
+		else
+			split.join
+		end
 	end
 end
 
@@ -369,6 +394,9 @@ def color(key, value)
 	COLOR[key] = color_to_codes(value)
 end
 
+# Map a logical format to a string of ANSI codes
+#   col: any key from the COLORS array, or a hex code like "#ffccaa"
+#   returns: the numeric part of an ANSI sequence, like "31;1" for bold red
 def color_to_codes(col)
 	col.split(/\s+/).map {|one_color|
 		if one_color =~ /^bg:/
@@ -397,12 +425,20 @@ def color_to_codes(col)
 	}.join(';')
 end
 
+# Apply a logical format to a string
+#   col: any key from the COLORS array, or a hex code like "#ffccaa"
+#   s: the string to decorate
+#   returns: s, with the ANSI codes selected by col applied
 def fmt(col, s)
 	return s if col == "plain"
 	code = color_to_codes(col)
 	ansi(code, s)
 end
 
+# Apply a sequence of ANSI codes to a string.
+#   codes: just the numeric part of the code, like "31;1" for bold red
+#   s: the string to decorate, which might already have some ANSI in it
+#   returns: s, with the codes wrapped around it
 def ansi(codes, s)
 	# If there are already ANSI codes in `s`, like from the user using `#{fmt('bold', '...')}` in their config file
 	# rewrite the end of those sequences to apply the overall formatting for the string.

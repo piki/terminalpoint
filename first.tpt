@@ -1,11 +1,11 @@
-config "title.position", "right"
 config "title.color", "red"
 config "bullet.color", "green"
 config "text.color", "cyan"
 
 slide
-	title "Here is a #{fmt('bold', 'diagram')}"
-	pre center <<-'EOF'
+	title "Here is a diagram"
+	bullet "I love diagrams!"
+	pre <<-'EOF'
                   .----.
       .---------. | == |
       |.-"""""-.| |----|
@@ -17,12 +17,37 @@ slide
     /:::=======:::\`\`\
     `"""""""""""""`  '-'
 	EOF
+	bullet "That was a good one!"
 
 slide
 	title "OK, then"
 	bullet "Let's make this a stupidly #{fmt('bold pink bg:orange', 'long')} string that goes past the width of the screen and needs to be wrapped around onto the next line but without creating a second bullet"
-	bullet "Lorem ipsum"
-	bullet "Dolor est"
+	bullet "One **word** is bold"
+	bullet "This is __also__ bold"
+	bullet "One *word* is italics"
+	bullet "One _word_ is underlined"
+	bullet "One ~word~ is struck through"
+	bullet "This is a SNAKE_CASE_IDENTIFIER undecorated"
+	bullet "This is some math undecorated: 1 * 2 * 3"
+	bullet "Backticks `*protect* _everything_`"
+
+slide
+	title "Oops all backticks"
+	bullet "Lorem ipsum dolor sit"
+	bullet "Lorem `ipsum dolor sit"
+	bullet "Lorem `ipsum` dolor sit"
+	bullet "Lorem `ipsum` dolor `sit"
+	bullet "Lorem `ipsum` dolor `sit`"
+	bullet "Lorem `ipsum` dolor `sit` amet"
+
+slide
+	title "Backticks and other markdown"
+	bullet "Lorem ipsum dolor sit"
+	bullet "Lorem `*ipsum* dolor sit"
+	bullet "Lorem `*ipsum*` dolor sit"
+	bullet "Lorem `ipsum` _dolor_ `sit"
+	bullet "_Lorem_ `ipsum` dolor `_sit_`"
+	bullet "~Lorem~ `ipsum` dolor `~sit~` amet"
 
 slide
 	title "OK, then #2"
