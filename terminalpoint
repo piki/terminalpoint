@@ -215,7 +215,7 @@ private
 		if basis =~ /(\x1b\[[0-9;]+m)$/
 			suffix = $1
 		end
-		prefix.to_s + s.gsub(/\x1b\[[0-9];]+m/, '') + suffix.to_s
+		prefix.to_s + s.gsub(/\x1b\[[0-9;]+m/, '') + suffix.to_s
 	end
 
 	def wrap_text(text, max_length)
