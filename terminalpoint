@@ -143,24 +143,13 @@ class Table < Entry
 		end
 		twidth = col_widths.sum + ncolumns*3 + 1
 
-		if twidth >= COLS
-			cols_shrinkable = col_widths.zip(min_widths).filter{|a, b| a > b}.size
-			col_shrink = (twidth+1) - COLS
+		while twidth >= COLS
 			col_widths = col_widths.zip(min_widths).map {|w, minw|
-				if w > minw
-					shrink = col_shrink / cols_shrinkable
-					w = w - shrink
-					if w < minw
-						raise "Table does not fit"
-					end
-					cols_shrinkable -= 1
-					col_shrink -= shrink
-					w
-				else
-					w
-				end	
+				[w * 9 / 10, minw].max
 			}
-			twidth = col_widths.sum + ncolumns*3 + 1
+			new_twidth = col_widths.sum + ncolumns*3 + 1
+			raise "Table does not fit" if new_twidth == twidth
+			twidth = new_twidth
 		end
 
 		@arr = arr
