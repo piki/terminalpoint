@@ -361,6 +361,7 @@ def center(txt)
 end
 
 def config(key, value)
+	raise "Unknown config key #{key}" unless CONFIG.has_key?(key)
 	CONFIG[key] = value
 end
 
