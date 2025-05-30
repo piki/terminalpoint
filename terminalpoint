@@ -38,205 +38,9 @@ COLOR = {
 	"orange" => "38;5;202",
 }
 
-class Slide
-	def initialize
-		@title = nil
-		@bullets = []
-	end
-
-	def flush
-		lines = 0
-
-		wrap_width = COLS - CONFIG['pad.left'] - CONFIG['bullet.text'].size - 1 - CONFIG['pad.right']
-
-		top_pad = "\n" * CONFIG['pad.top']
-		puts top_pad
-		lines += top_pad.size
-
-		if @title
-			left_title_pad = " " * case CONFIG['title.position']
-				when "center"
-					(COLS - display_width(@title))/2
-				when "left"
-					CONFIG['pad.left']
-				when "right"
-					COLS - CONFIG['pad.right'] - display_width(@title)
-				when "block-center"
-					max_content_width = @bullets.map{|s| s.size}.max
-					max_content_width = [max_content_width, display_width(@title)].max
-					max_content_width = [max_content_width, wrap_width].min
-					CONFIG['pad.left'] + (max_content_width + CONFIG['bullet.text'].size + 1 - display_width(@title))/2
-				else
-					raise "unknown title.position: #{CONFIG['title.position']}"
-			end
-			below_title_pad = "\n" * CONFIG['pad.title']
-			puts "#{left_title_pad}#{fmt(CONFIG['title.color'], @title)}"
-			puts below_title_pad
-			lines += 1 + below_title_pad.size
-		end
-
-		bullet_pad = " " * CONFIG['pad.left']
-		@bullets.each_with_index do |txt, i|
-			if i > 0
-				puts
-				lines += 1
-			end
-
-			split = wrap_text(txt, COLS - bullet_pad.size - CONFIG['bullet.text'].size - 1 - CONFIG['pad.right'])
-			split.each_with_index do |part, j|
-				print bullet_pad
-				if j == 0
-					print fmt(CONFIG['bullet.color'], CONFIG['bullet.text'])
-				else
-					print " " * CONFIG['bullet.text'].size
-				end
-				print " "
-				puts fmt(CONFIG['text.color'], part)
-				lines += 1
-			end
-		end
-
-		if @table
-			ncolumns = @table.map {|row| row.size if row.is_a?(Array)}.compact.max
-			col_widths = (0...ncolumns).map do |col|
-				@table.map {|row| display_width(row[col]) if row.is_a?(Array)}.compact.max
-			end
-			min_widths = (0...ncolumns).map do |col|
-				@table.map {|row| row[col].split(/\s+/).map {|word| display_width(word)}.max if row.is_a?(Array)}.compact.max
-			end
-			twidth = col_widths.sum + ncolumns*3 + 1
-
-			if twidth >= COLS
-				cols_shrinkable = col_widths.zip(min_widths).filter{|a, b| a > b}.size
-				col_shrink = (twidth+1) - COLS
-				col_widths = col_widths.zip(min_widths).map {|w, minw|
-					if w > minw
-						shrink = col_shrink / cols_shrinkable
-						w = w - shrink
-						if w < minw
-							raise "Table does not fit"
-						end
-						cols_shrinkable -= 1
-						col_shrink -= shrink
-						w
-					else
-						w
-					end	
-				}
-				twidth = col_widths.sum + ncolumns*3 + 1
-			end
-
-			left_pad = " " * ((COLS - twidth)/2)
-
-			is_header = false
-			puts "#{left_pad}╔" + ("═" * (twidth-2)) + "╗"
-			lines += 1
-			@table.each do |row|
-				if row == :header
-					is_header = true
-					next
-				end
-
-				cell_row = 0
-				more_cell_rows = true
-
-				while more_cell_rows
-					more_cell_rows = false
-					print "#{left_pad}║"
-					row.zip(col_widths).each_with_index do |(cell, w), i|
-						print is_header ? " " : "│" if i > 0
-						print " "
-						cell_parts = wrap_text(cell, w)
-						if cell_parts.size > cell_row
-							cell_part = cell_parts[cell_row]
-							more_cell_rows ||= cell_parts.size > cell_row + 1
-							if is_header
-								print fmt(CONFIG['table.header.color'], borrow_formatting(cell_part, cell_parts[...cell_row]))
-							else
-								print borrow_formatting(cell_part, cell_parts[...cell_row])
-							end
-							pad = w + 1 - display_width(cell_part)
-							print " " * pad
-						else
-							print " " * (w + 1)
-						end
-					end
-					puts "║"
-					lines += 1
-					cell_row += 1
-				end
-
-				if is_header
-					puts "#{left_pad}╠" + col_widths.map{|w| "═" * (w+2)}.join("╤") + "╣"
-					lines += 1
-				elsif row != @table.last
-					puts "#{left_pad}╟" + col_widths.map{|w| "─" * (w+2)}.join("┼") + "╢"
-					lines += 1
-				end
-
-				is_header = false
-			end
-			puts "#{left_pad}╚" + col_widths.map{|w| "═" * (w+2)}.join("╧") + "╝"
-			lines += 1
-		end
-
-		if @pre
-			puts @pre
-			lines += @pre.lines.size
-		end
-
-		puts "\n" * (ROWS - lines)
-	end
-
-	def title(s)
-		@title = replace_backticks(s)
-	end
-
-	def bullet(s)
-		@bullets << replace_backticks(s)
-	end
-
-	def table(t)
-		@table = t.map {|row|
-			if row.is_a?(Array)
-				row.map{|col| replace_backticks(col)}
-			else
-				row
-			end
-		}
-	end
-
-	def pre(txt)
-		@pre = txt
-	end
-
-	def empty?
-		!@title.nil? || !@bullets.empty?
-	end
-
-private
-	def replace_backticks(s)
-		s.
-			gsub(/`([^`])*`/) { |txt| fmt(CONFIG['code.color'], txt[1..-2]) }.
-			gsub(/~([^~])*~/) { |txt| ansi(9, txt[1..-2]) }
-	end
-
+class Entry
 	def display_width(s)
 		s.gsub(/\x1b\[[0-9;]+m/, '').size
-	end
-
-	def borrow_formatting(s, parts)
-		if !s.start_with?("\e[")
-			if parts.join(' ') =~ /.*(\e\[[0-9;]+m)/
-				s = $1 + s
-			end
-		end
-
-		if !s.end_with?("\e[0m")
-			s = s + "\e[0m"
-		end
-
-		s
 	end
 
 	def wrap_text(text, max_length)
@@ -263,10 +67,258 @@ private
 	end
 end
 
+class Title < Entry
+	def initialize(txt)
+		@txt = txt
+	end
+
+	def width
+		@txt.size
+	end
+
+	def display(max_content_width)
+		left_title_pad = " " * case CONFIG['title.position']
+			when "center"
+				(COLS - display_width(@txt))/2
+			when "left"
+				CONFIG['pad.left']
+			when "right"
+				COLS - CONFIG['pad.right'] - display_width(@txt)
+			when "block-center"
+				CONFIG['pad.left'] + (max_content_width + CONFIG['bullet.text'].size + 1 - display_width(@txt))/2
+			else
+				raise "unknown title.position: #{CONFIG['title.position']}"
+		end
+		below_title_pad = "\n" * CONFIG['pad.title']
+		puts "#{left_title_pad}#{fmt(CONFIG['title.color'], @txt)}"
+		puts below_title_pad
+
+		1 + below_title_pad.size
+	end
+end
+
+class Bullet < Entry
+	def initialize(txt)
+		@txt = txt
+	end
+
+	def width
+		@txt.size
+	end
+
+	def display(max_content_width)
+		bullet_pad = " " * CONFIG['pad.left']
+
+		split = wrap_text(@txt, COLS - bullet_pad.size - CONFIG['bullet.text'].size - 1 - CONFIG['pad.right'])
+		split.each_with_index do |part, j|
+			print bullet_pad
+			if j == 0
+				print fmt(CONFIG['bullet.color'], CONFIG['bullet.text'])
+			else
+				print " " * CONFIG['bullet.text'].size
+			end
+			print " "
+			puts fmt(CONFIG['text.color'], part)
+		end
+
+		puts
+
+		split.size + 1
+	end
+end
+
+class Table < Entry
+	def initialize(arr)
+		@arr = arr
+
+		ncolumns = arr.map {|row| row.size if row.is_a?(Array)}.compact.max
+		col_widths = (0...ncolumns).map do |col|
+			arr.map {|row| display_width(row[col]) if row.is_a?(Array)}.compact.max
+		end
+		min_widths = (0...ncolumns).map do |col|
+			arr.map {|row| row[col].split(/\s+/).map {|word| display_width(word)}.max if row.is_a?(Array)}.compact.max
+		end
+		twidth = col_widths.sum + ncolumns*3 + 1
+
+		if twidth >= COLS
+			cols_shrinkable = col_widths.zip(min_widths).filter{|a, b| a > b}.size
+			col_shrink = (twidth+1) - COLS
+			col_widths = col_widths.zip(min_widths).map {|w, minw|
+				if w > minw
+					shrink = col_shrink / cols_shrinkable
+					w = w - shrink
+					if w < minw
+						raise "Table does not fit"
+					end
+					cols_shrinkable -= 1
+					col_shrink -= shrink
+					w
+				else
+					w
+				end	
+			}
+			twidth = col_widths.sum + ncolumns*3 + 1
+		end
+
+		@arr = arr
+		@twidth = twidth
+		@col_widths = col_widths
+	end
+
+	def width
+		@twidth
+	end
+
+	def display(max_content_width)
+		lines = 0
+
+		left_pad = " " * ((COLS - @twidth)/2)
+
+		is_header = false
+		puts "#{left_pad}╔" + ("═" * (@twidth-2)) + "╗"
+		lines += 1
+		@arr.each do |row|
+			if row == :header
+				is_header = true
+				next
+			end
+
+			cell_row = 0
+			more_cell_rows = true
+
+			while more_cell_rows
+				more_cell_rows = false
+				print "#{left_pad}║"
+				row.zip(@col_widths).each_with_index do |(cell, w), i|
+					print is_header ? " " : "│" if i > 0
+					print " "
+					cell_parts = wrap_text(cell, w)
+					if cell_parts.size > cell_row
+						cell_part = cell_parts[cell_row]
+						more_cell_rows ||= cell_parts.size > cell_row + 1
+						if is_header
+							print fmt(CONFIG['table.header.color'], borrow_formatting(cell_part, cell_parts[...cell_row]))
+						else
+							print borrow_formatting(cell_part, cell_parts[...cell_row])
+						end
+						pad = w + 1 - display_width(cell_part)
+						print " " * pad
+					else
+						print " " * (w + 1)
+					end
+				end
+				puts "║"
+				lines += 1
+				cell_row += 1
+			end
+
+			if is_header
+				puts "#{left_pad}╠" + @col_widths.map{|w| "═" * (w+2)}.join("╤") + "╣"
+				lines += 1
+			elsif row != @arr.last
+				puts "#{left_pad}╟" + @col_widths.map{|w| "─" * (w+2)}.join("┼") + "╢"
+				lines += 1
+			end
+
+			is_header = false
+		end
+		puts "#{left_pad}╚" + @col_widths.map{|w| "═" * (w+2)}.join("╧") + "╝"
+		lines += 1
+
+		lines
+	end
+
+private
+	def borrow_formatting(s, parts)
+		if !s.start_with?("\e[")
+			if parts.join(' ') =~ /.*(\e\[[0-9;]+m)/
+				s = $1 + s
+			end
+		end
+
+		if !s.end_with?("\e[0m")
+			s = s + "\e[0m"
+		end
+
+		s
+	end
+end
+
+class Pre < Entry
+	def initialize(txt)
+		@txt = txt
+	end
+
+	def width
+		@txt.lines.map(&:size).max
+	end
+
+	def display(max_content_width)
+		puts @txt
+		@txt.lines.size
+	end
+end
+
+class Slide
+	def initialize
+		@entries = []
+	end
+
+	def display
+		wrap_width = COLS - CONFIG['pad.left'] - CONFIG['bullet.text'].size - 1 - CONFIG['pad.right']
+
+		max_content_width = @entries.map{|s| s.width}.max
+		max_content_width = [max_content_width, wrap_width].min
+
+		top_pad = "\n" * CONFIG['pad.top']
+		puts top_pad
+		lines = top_pad.size
+
+		lines += @entries.map { |e| e.display(max_content_width) }.sum
+
+		puts "\n" * (ROWS - lines)
+	end
+
+	def title(s)
+		@entries << Title.new(replace_backticks(s))
+	end
+
+	def bullet(s)
+		@entries << Bullet.new(replace_backticks(s))
+	end
+
+	def table(t)
+		@entries << Table.new(
+			t.map {|row|
+				if row.is_a?(Array)
+					row.map{|col| replace_backticks(col)}
+				else
+					row
+				end
+			}
+		)
+	end
+
+	def pre(txt)
+		@entries << Pre.new(txt)
+	end
+
+	def empty?
+		!@title.nil? || !@bullets.empty?
+	end
+
+private
+	def replace_backticks(s)
+		s.
+			gsub(/`([^`])*`/) { |txt| fmt(CONFIG['code.color'], txt[1..-2]) }.
+			gsub(/~([^~])*~/) { |txt| ansi(9, txt[1..-2]) }
+	end
+end
+
 @current_slide = nil
 
 def slide
-	@current_slide.flush if @current_slide
+	@current_slide.display if @current_slide
 	@current_slide = Slide.new
 end
 
@@ -343,4 +395,4 @@ def ansi(codes, s)
 end
 
 eval File.read(ARGV[0])
-@current_slide.flush if @current_slide
+@current_slide.display if @current_slide
