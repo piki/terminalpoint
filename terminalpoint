@@ -180,6 +180,11 @@ class Slide
 			lines += 1
 		end
 
+		if @pre
+			puts @pre
+			lines += @pre.lines.size
+		end
+
 		puts "\n" * (ROWS - lines)
 	end
 
@@ -193,6 +198,10 @@ class Slide
 
 	def table(t)
 		@table = t
+	end
+
+	def pre(txt)
+		@pre = txt
 	end
 
 	def empty?
@@ -259,6 +268,17 @@ end
 
 def table(t)
 	@current_slide.table(t)
+end
+
+def pre(txt)
+	@current_slide.pre(txt)
+end
+
+def center(txt)
+	txt = txt.lines
+	max_width = txt.map {|s| s.size}.max
+	left_pad = " " * ((COLS - max_width)/2)
+	txt.map {|s| "#{left_pad}#{s}"}.join("")
 end
 
 def config(key, value)

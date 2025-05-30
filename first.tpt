@@ -4,6 +4,21 @@ config "bullet.color", "green"
 config "text.color", "cyan"
 
 slide
+	title "Here is a #{fmt('bold', 'diagram')}"
+	pre center <<-'EOF'
+                  .----.
+      .---------. | == |
+      |.-"""""-.| |----|
+      ||       || | == |
+      ||       || |----|
+      |'-.....-'| |::::|
+      `"")---(""` |___.|
+     /:::::::::::\" _  "
+    /:::=======:::\`\`\
+    `"""""""""""""`  '-'
+	EOF
+
+slide
 	title "OK, then"
 	bullet "Let's make this a stupidly #{fmt('bold pink bg:orange', 'long')} string that goes past the width of the screen and needs to be wrapped around onto the next line but without creating a second bullet"
 	bullet "Lorem ipsum"
