@@ -33,5 +33,7 @@ slide
 slide
 	title "OK, then #3"
 	bullet "Let's make this a stupidly long string that goes past the width of the screen and needs to be wrapped around onto the next line but without creating a second bullet"
+	build
 	bullet "Lorem ipsum"
+	build
 	bullet "Dolor est"

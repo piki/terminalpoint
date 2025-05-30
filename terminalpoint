@@ -322,6 +322,10 @@ def slide
 	@current_slide = Slide.new
 end
 
+def build
+	@current_slide.display if @current_slide
+end
+
 def title(s)
 	@current_slide.title(s)
 end
