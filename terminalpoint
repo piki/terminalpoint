@@ -93,7 +93,7 @@ class Title < Entry
 				raise "unknown title.position: #{CONFIG['title.position']}"
 		end
 		below_title_pad = "\n" * CONFIG['pad.title']
-		puts "#{left_title_pad}#{fmt(CONFIG['title.color'], @txt)}"
+		puts "#{left_title_pad}#{TerminalPoint.fmt(CONFIG['title.color'], @txt)}"
 		puts below_title_pad
 
 		1 + below_title_pad.size
@@ -116,12 +116,12 @@ class Bullet < Entry
 		split.each_with_index do |part, j|
 			print bullet_pad
 			if j == 0
-				print fmt(CONFIG['bullet.color'], CONFIG['bullet.text'])
+				print TerminalPoint.fmt(CONFIG['bullet.color'], CONFIG['bullet.text'])
 			else
 				print " " * CONFIG['bullet.text'].size
 			end
 			print " "
-			puts fmt(CONFIG['text.color'], part)
+			puts TerminalPoint.fmt(CONFIG['text.color'], part)
 		end
 
 		puts
@@ -209,7 +209,7 @@ class Table < Entry
 						cell_part = cell_parts[cell_row]
 						more_cell_rows ||= cell_parts.size > cell_row + 1
 						if is_header
-							print fmt(CONFIG['table.header.color'], borrow_formatting(cell_part, cell_parts[...cell_row]))
+							print TerminalPoint.fmt(CONFIG['table.header.color'], borrow_formatting(cell_part, cell_parts[...cell_row]))
 						else
 							print borrow_formatting(cell_part, cell_parts[...cell_row])
 						end
@@ -331,13 +331,13 @@ private
 		split = split.each_with_index.map{|tok, i|
 			if i % 2 == 0 || i == split.size - 1
 				tok.
-					gsub(/~([^~]*)~/) { |txt| ansi(9, txt[1..-2]) }.
-					gsub(/\*\*([^*]*)\*\*/) { |txt| ansi(1, txt[2..-3]) }.
-					gsub(/__([^_]*)__/) { |txt| ansi(1, txt[2..-3]) }.
-					gsub(/\*(\w[^*]*)\*/) { |txt| ansi(3, txt[1..-2]) }.
-					gsub(/\b_([^_]*)_\b/) { |txt| ansi(4, txt[1..-2]) }
+					gsub(/~([^~]*)~/) { |txt| TerminalPoint.ansi(9, txt[1..-2]) }.
+					gsub(/\*\*([^*]*)\*\*/) { |txt| TerminalPoint.ansi(1, txt[2..-3]) }.
+					gsub(/__([^_]*)__/) { |txt| TerminalPoint.ansi(1, txt[2..-3]) }.
+					gsub(/\*(\w[^*]*)\*/) { |txt| TerminalPoint.ansi(3, txt[1..-2]) }.
+					gsub(/\b_([^_]*)_\b/) { |txt| TerminalPoint.ansi(4, txt[1..-2]) }
 			else
-				fmt(CONFIG['code.color'], tok)
+				TerminalPoint.fmt(CONFIG['code.color'], tok)
 			end
 		}
 
@@ -351,100 +351,136 @@ private
 	end
 end
 
-@current_slide = nil
+class TerminalPoint
+	def initialize
+		@current_slide = nil
+	end
 
-def slide
-	@current_slide.display if @current_slide
-	@current_slide = Slide.new
+	# [DSL] begin a new slide
+	def slide
+		@current_slide.display if @current_slide
+		@current_slide = Slide.new
+	end
+
+	# [DSL] pause for input before displaying the next element
+	def build
+		@current_slide.display if @current_slide
+	end
+
+	# [DSL] add a title element to the slide
+	#   s: markdown or ANSI text to display
+	def title(s)
+		@current_slide.title(s)
+	end
+
+	# [DSL] add a bullet element to the slide
+	#   s: markdown or ANSI text to display
+	def bullet(s)
+		@current_slide.bullet(s)
+	end
+
+	# [DSL] add a table element to the slide
+	#   t: an array of table rows.  Each row is an array of markdown or ANSI text for a cell.
+	#      A special row value :header indicates that the next row should be displayed as a header.
+	def table(t)
+		@current_slide.table(t)
+	end
+
+	# [DSL] add a fixed-format element to the slide
+	#   txt: text to be displayed verbatim, including newlines.  No markdown processing occurs.
+	def pre(txt)
+		@current_slide.pre(txt)
+	end
+
+	# [DSL] center a `pre` element on the slide
+	# Usage:
+	#   pre center 'something'
+	def center(txt)
+		txt = txt.lines
+		max_width = txt.map {|s| s.size}.max
+		left_pad = " " * ((COLS - max_width)/2)
+		txt.map {|s| "#{left_pad}#{s}"}.join("")
+	end
+
+	# [DSL] change the value of a configuration key
+	#   key: the key, which must exist in the default CONFIG hash
+	#   value: the value, which must be the same class as the default value
+	def config(key, value)
+		raise "Unknown config key #{key}" unless CONFIG.has_key?(key)
+		raise "Config key #{key} must be a #{CONFIG[key].class}" unless value.is_a?(CONFIG[key].class)
+		CONFIG[key] = value
+	end
+
+	# [DSL] set a custom color, which can be used in config and fmt commands
+	#   key: the name of the new color
+	#   value: either a string-separated list of COLOR keys, like 'bold red', or a hex value like '#ffccaa'
+	def color(key, value)
+		COLOR[key] = TerminalPoint.color_to_codes(value)
+	end
+
+	# [DSL] decorate the text with a list of selectors
+	#   col: one or more selectors, as a space-separated string.  Each selector is either a key in the
+	#        COLORS array or a hex code.  E.g., "bg:green #ff0000 italic"
+	#   s: the string to decorate
+	# Example:
+	#   fmt('bg:green #ff0000 italic', 'Ugly!')
+	def fmt(col, s)
+		TerminalPoint.fmt(col, s)
+	end
+
+	# Map a logical format to a string of ANSI codes
+	#   col: any key from the COLORS array, or a hex code like "#ffccaa"
+	#   returns: the numeric part of an ANSI sequence, like "31;1" for bold red
+	def TerminalPoint.color_to_codes(col)
+		col.split(/\s+/).map {|one_color|
+			if one_color =~ /^bg:/
+				one_color = one_color[3..]
+				bg = true
+			end
+
+			code = if COLOR.has_key?(one_color)
+				COLOR[one_color]
+			elsif one_color =~ /^#[0-9a-fA-F]{6}$/
+				red = one_color[1..2].hex
+				green = one_color[3..4].hex
+				blue = one_color[5..6].hex
+				"38;2;#{red};#{green};#{blue}"
+			else
+				raise "Unknown color: #{one_color}"
+			end
+
+			if bg
+				codes = code.split(/;/)
+				codes[0] = (codes[0].to_i + 10).to_s
+				code = codes.join(';')
+			end
+
+			code
+		}.join(';')
+	end
+
+	# Apply a logical format to a string
+	#   col: a space-separated list of color keys, which are either keys from the COLORS array, or a hex code like "#ffccaa"
+	#   s: the string to decorate
+	#   returns: s, with the ANSI codes selected by col applied
+	def TerminalPoint.fmt(col, s)
+		return s if col == "plain"
+		code = color_to_codes(col)
+		ansi(code, s)
+	end
+
+	# Apply a sequence of ANSI codes to a string.
+	#   codes: just the numeric part of the code, like "31;1" for bold red
+	#   s: the string to decorate, which might already have some ANSI in it
+	#   returns: s, with the codes wrapped around it
+	def TerminalPoint.ansi(codes, s)
+		# If there are already ANSI codes in `s`, like from the user using `#{fmt('bold', '...')}` in their config file
+		# rewrite the end of those sequences to apply the overall formatting for the string.
+		sfix = s.gsub("\x1b[0m", "\x1b[0;#{codes}m")
+		"\x1b[#{codes}m#{sfix}\x1b[0m"
+	end
 end
 
-def build
-	@current_slide.display if @current_slide
-end
-
-def title(s)
-	@current_slide.title(s)
-end
-
-def bullet(s)
-	@current_slide.bullet(s)
-end
-
-def table(t)
-	@current_slide.table(t)
-end
-
-def pre(txt)
-	@current_slide.pre(txt)
-end
-
-def center(txt)
-	txt = txt.lines
-	max_width = txt.map {|s| s.size}.max
-	left_pad = " " * ((COLS - max_width)/2)
-	txt.map {|s| "#{left_pad}#{s}"}.join("")
-end
-
-def config(key, value)
-	raise "Unknown config key #{key}" unless CONFIG.has_key?(key)
-	CONFIG[key] = value
-end
-
-def color(key, value)
-	COLOR[key] = color_to_codes(value)
-end
-
-# Map a logical format to a string of ANSI codes
-#   col: any key from the COLORS array, or a hex code like "#ffccaa"
-#   returns: the numeric part of an ANSI sequence, like "31;1" for bold red
-def color_to_codes(col)
-	col.split(/\s+/).map {|one_color|
-		if one_color =~ /^bg:/
-			one_color = one_color[3..]
-			bg = true
-		end
-
-		code = if COLOR.has_key?(one_color)
-			COLOR[one_color]
-		elsif one_color =~ /^#[0-9a-fA-F]{6}$/
-			red = one_color[1..2].hex
-			green = one_color[3..4].hex
-			blue = one_color[5..6].hex
-			"38;2;#{red};#{green};#{blue}"
-		else
-			raise "Unknown color: #{one_color}"
-		end
-
-		if bg
-			codes = code.split(/;/)
-			codes[0] = (codes[0].to_i + 10).to_s
-			code = codes.join(';')
-		end
-
-		code
-	}.join(';')
-end
-
-# Apply a logical format to a string
-#   col: any key from the COLORS array, or a hex code like "#ffccaa"
-#   s: the string to decorate
-#   returns: s, with the ANSI codes selected by col applied
-def fmt(col, s)
-	return s if col == "plain"
-	code = color_to_codes(col)
-	ansi(code, s)
-end
-
-# Apply a sequence of ANSI codes to a string.
-#   codes: just the numeric part of the code, like "31;1" for bold red
-#   s: the string to decorate, which might already have some ANSI in it
-#   returns: s, with the codes wrapped around it
-def ansi(codes, s)
-	# If there are already ANSI codes in `s`, like from the user using `#{fmt('bold', '...')}` in their config file
-	# rewrite the end of those sequences to apply the overall formatting for the string.
-	sfix = s.gsub("\x1b[0m", "\x1b[0;#{codes}m")
-	"\x1b[#{codes}m#{sfix}\x1b[0m"
-end
-
-eval File.read(ARGV[0])
-@current_slide.display if @current_slide
+tp = TerminalPoint.new
+tp.instance_eval(ARGF.read)
+tp.build
