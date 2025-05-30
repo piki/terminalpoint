@@ -197,7 +197,13 @@ class Slide
 	end
 
 	def table(t)
-		@table = t
+		@table = t.map {|row|
+			if row.is_a?(Array)
+				row.map{|col| replace_backticks(col)}
+			else
+				row
+			end
+		}
 	end
 
 	def pre(txt)
@@ -210,7 +216,9 @@ class Slide
 
 private
 	def replace_backticks(s)
-		s.gsub(/`([^`])*`/) { |txt| fmt(CONFIG['code.color'], txt[1..-2]) }
+		s.
+			gsub(/`([^`])*`/) { |txt| fmt(CONFIG['code.color'], txt[1..-2]) }.
+			gsub(/~([^~])*~/) { |txt| ansi(9, txt[1..-2]) }
 	end
 
 	def display_width(s)
