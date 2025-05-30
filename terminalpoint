@@ -6,8 +6,9 @@ ROWS = IO.console.winsize[0] - 1   # leave one for the `less` status bar
 COLS = IO.console.winsize[1]
 CONFIG = {
 	"title.color" => "bold",
-	"table.header.color" => "bold",
 	"title.position" => "center",  # or "left", or "right", or "block-center"
+	"table.header.color" => "bold",
+	"table.position" => "center",  # or "left", or "right"
 	"bullet.color" => "plain",
 	"text.color" => "plain",
 	"bullet.text" => "»",
@@ -172,7 +173,16 @@ class Table < Entry
 	def display(max_content_width)
 		lines = 0
 
-		left_pad = " " * ((COLS - @twidth)/2)
+		left_pad = " " * case CONFIG['table.position']
+			when "left"
+				CONFIG['pad.left']
+			when "center"
+				(COLS - @twidth)/2
+			when "right"
+				COLS - CONFIG['pad.right'] - @twidth
+			else
+				raise "unknown table.position: #{CONFIG['table.position']}"
+		end
 
 		is_header = false
 		puts "#{left_pad}╔" + ("═" * (@twidth-2)) + "╗"
