@@ -7,6 +7,8 @@ COLS = IO.console.winsize[1]
 CONFIG = {
 	"title.color" => "bold",
 	"title.position" => "center",  # or "left", or "right", or "block-center"
+	"title.box" => "none", # or any combination of "top", "bottom", "left", "right", "double"; "box" means "top bottom left right"
+	"title.box.color" => "plain",
 	"table.header.color" => "bold",
 	"table.position" => "center",  # or "left", or "right"
 	"bullet.color" => "plain",
@@ -80,23 +82,49 @@ class Title < Entry
 	end
 
 	def display(max_content_width)
+		title_box = CONFIG['title.box'].downcase.split
+		box_dbl = title_box.include?('double')
+		box_box = title_box.include?('box')
+		box_l = box_box || title_box.include?('left')
+		box_r = box_box || title_box.include?('right')
+		box_t = box_box || title_box.include?('top')
+		box_b = box_box || title_box.include?('bottom')
+
+		real_txt = TerminalPoint.fmt(CONFIG['title.color'], @txt)
+		real_txt = (TerminalPoint.fmt(CONFIG['title.box.color'], (box_dbl ? "║ " : '│ ')) + real_txt) if box_l
+		real_txt = (real_txt + TerminalPoint.fmt(CONFIG['title.box.color'], (box_dbl ? " ║" : ' │'))) if box_r
+
 		left_title_pad = " " * case CONFIG['title.position']
 			when "center"
-				(COLS - display_width(@txt))/2
+				(COLS - display_width(real_txt))/2
 			when "left"
 				CONFIG['pad.left']
 			when "right"
-				COLS - CONFIG['pad.right'] - display_width(@txt)
+				COLS - CONFIG['pad.right'] - display_width(real_txt)
 			when "block-center"
-				CONFIG['pad.left'] + (max_content_width + CONFIG['bullet.text'].size + 1 - display_width(@txt))/2
+				CONFIG['pad.left'] + (max_content_width + CONFIG['bullet.text'].size + 1 - display_width(real_txt))/2
 			else
 				raise "unknown title.position: #{CONFIG['title.position']}"
 		end
 		below_title_pad = "\n" * CONFIG['pad.title']
-		puts "#{left_title_pad}#{TerminalPoint.fmt(CONFIG['title.color'], @txt)}"
+		if box_t
+			top_line = ""
+			top_line << (box_dbl ? "╔═" : "┌─") if box_l
+			top_line << (box_dbl ? "═" : "─") * display_width(@txt)
+			top_line << (box_dbl ? "═╗" : "─┐") if box_r
+			puts left_title_pad + TerminalPoint.fmt(CONFIG['title.box.color'], top_line)
+		end
+		puts "#{left_title_pad}#{real_txt}"
+		if box_b
+			bottom_line = ""
+			bottom_line << (box_dbl ? "╚═" : "└─") if box_l
+			bottom_line << (box_dbl ? "═" : "─") * display_width(@txt)
+			bottom_line << (box_dbl ? "═╝" : "─┘") if box_r
+			puts left_title_pad + TerminalPoint.fmt(CONFIG['title.box.color'], bottom_line)
+		end
 		puts below_title_pad
 
-		1 + below_title_pad.size
+		1 + below_title_pad.size + (box_t ? 1 : 0) + (box_b ? 1 : 0)
 	end
 end
 
