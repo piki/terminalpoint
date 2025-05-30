@@ -420,7 +420,7 @@ class TerminalPoint
 
 	# [DSL] decorate the text with a list of selectors
 	#   col: one or more selectors, as a space-separated string.  Each selector is either a key in the
-	#        COLORS array or a hex code.  E.g., "bg:green #ff0000 italic"
+	#        COLOR array or a hex code.  E.g., "bg:green #ff0000 italic"
 	#   s: the string to decorate
 	# Example:
 	#   fmt('bg:green #ff0000 italic', 'Ugly!')
@@ -429,7 +429,7 @@ class TerminalPoint
 	end
 
 	# Map a logical format to a string of ANSI codes
-	#   col: any key from the COLORS array, or a hex code like "#ffccaa"
+	#   col: any key from the COLOR array, or a hex code like "#ffccaa"
 	#   returns: the numeric part of an ANSI sequence, like "31;1" for bold red
 	def TerminalPoint.color_to_codes(col)
 		col.split(/\s+/).map {|one_color|
@@ -460,7 +460,7 @@ class TerminalPoint
 	end
 
 	# Apply a logical format to a string
-	#   col: a space-separated list of color keys, which are either keys from the COLORS array, or a hex code like "#ffccaa"
+	#   col: a space-separated list of color keys, which are either keys from the COLOR array, or a hex code like "#ffccaa"
 	#   s: the string to decorate
 	#   returns: s, with the ANSI codes selected by col applied
 	def TerminalPoint.fmt(col, s)
