@@ -255,7 +255,8 @@ class Pre < Entry
 
 	def display(max_content_width)
 		puts @txt
-		@txt.lines.size
+		puts
+		@txt.lines.size + 1
 	end
 end
 
