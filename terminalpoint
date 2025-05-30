@@ -405,8 +405,18 @@ class TerminalPoint
 	# [DSL] change the value of a configuration key
 	#   key: the key, which must exist in the default CONFIG hash
 	#   value: the value, which must be the same class as the default value
-	def config(key, value)
+	def config(key, value=nil)
+		if key == :default
+			DEFAULTS.each { |k, v| CONFIG[k] = v }
+			return
+		end
+
 		raise "Unknown config key #{key}" unless CONFIG.has_key?(key)
+		if value == :default
+			CONFIG[key] = DEFAULTS[key].dup
+			return
+		end
+
 		raise "Config key #{key} must be a #{CONFIG[key].class}" unless value.is_a?(CONFIG[key].class)
 		CONFIG[key] = value
 	end
@@ -498,6 +508,8 @@ while ARGV.first =~ /^--/
 	end
 end
 exit 0 if quit_now
+
+DEFAULTS = CONFIG.dup
 		
 tp = TerminalPoint.new
 tp.instance_eval(ARGF.read)
