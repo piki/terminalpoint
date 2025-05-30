@@ -1,0 +1,80 @@
+slide
+	title "Style Examples"
+	bullet "This presentation demonstrates text formatting and colors"
+	bullet "Using #{fmt 'bold', 'fmt'} for inline styling"
+
+slide
+	title "Basic Markdown Styles"
+	bullet "Simple `backticks` for code"
+	bullet "**Bold text** for emphasis"
+	bullet "*Italic text* for subtle emphasis"
+	bullet "_Underlined text_ for highlighting"
+	bullet "__Also bold__ alternative syntax"
+
+slide
+	title "Built-in Colors"
+	bullet "#{fmt 'red', 'Red text'} for warnings or errors"
+	bullet "#{fmt 'green', 'Green text'} for success or go"
+	bullet "#{fmt 'blue', 'Blue text'} for information"
+	bullet "#{fmt 'yellow', 'Yellow text'} for caution"
+	bullet "#{fmt 'magenta', 'Magenta text'} for highlights"
+	bullet "#{fmt 'cyan', 'Cyan text'} for accents"
+	bullet "#{fmt 'orange', 'Orange text'} built-in warm color"
+	bullet "#{fmt 'pink', 'Pink text'} built-in soft color"
+
+slide
+	title "Combining Styles"
+	bullet "#{fmt 'bold red', 'Bold red text'} combines multiple styles"
+	bullet "#{fmt 'italic blue', 'Italic blue text'} for subtle info"
+	bullet "#{fmt 'underlined green', 'Underlined green'} for emphasis"
+
+slide
+	color "lilac", "#bb88ff"
+	color "fuscia", "#ff2288"
+	title "Custom Colors"
+	bullet "#{fmt 'lilac', 'Custom lilac'} defined with hex color"
+	bullet "#{fmt 'fuscia', 'Custom fuscia'} for vibrant highlights"
+
+slide
+	color "brand", "bold #0066cc"
+	color "warning", "bold yellow"
+	color "success", "bold green"
+	title "Branded Styles"
+	bullet "#{fmt 'brand', 'Brand blue'} with bold styling"
+	bullet "#{fmt 'warning', 'Warning text'} for alerts"
+	bullet "#{fmt 'success', 'Success message'} for confirmations"
+
+slide
+	config "title.color", "blue"
+	config "bullet.color", "green"
+	title "Colored Elements"
+	bullet "This title is blue and bullets are green"
+	bullet "Element colors override default styling"
+	bullet "Affects all elements of that type on the slide"
+
+slide
+	config "title.color", "bold red"
+	config "text.color", "cyan"
+	title "More Color Config"
+	bullet "Bold red title with cyan text"
+	bullet "Text color affects bullet content"
+
+slide
+	config "title.color", :default
+	config "bullet.color", :default 
+	config "text.color", :default
+	title "Reset Individual Colors"
+	bullet "Individual color settings reset to default"
+	bullet "While keeping other configurations"
+
+slide
+	config :default
+	title "Complete Reset"
+	bullet "All configurations reset to defaults"
+	bullet "Clean slate for new styling"
+
+slide
+	title "Mixed Content"
+	bullet "Regular text with #{fmt 'red', '**bold red**'} inline"
+	bullet "`Code blocks` with #{fmt 'blue', 'colored text'} mixed"
+	bullet "Very long lines with #{fmt 'green bold', 'multiple styles applied'} that demonstrate how **markdown** and #{fmt 'magenta', 'color formatting'} work together in wrapped text"

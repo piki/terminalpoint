@@ -1,0 +1,53 @@
+slide
+	title "Layout Examples"
+	bullet "This presentation demonstrates different layout options"
+	bullet "Including titles, bullets, spacing, and configuration"
+
+slide
+	title "Default Layout"
+	bullet "This slide uses default positioning"
+	bullet "Title at top, standard padding"
+	bullet "Normal bullet spacing"
+
+slide
+	config "title.position", "left"
+	title "Left-Aligned Title"
+	bullet "This title is centered horizontally"
+	bullet "Useful for emphasis or formal presentations"
+
+slide
+	config "title.position", "right"
+	title "Right-Aligned Title"
+	bullet "This title is aligned to the right"
+	bullet "Creates a different visual emphasis"
+
+slide
+	config "pad.top", 5
+	title "Extra Top Padding"
+	bullet "This slide has 5 lines of top padding"
+	bullet "Pushes content down for visual breathing room"
+
+slide
+	config "pad.left", 20
+	title "Left Padding Example"
+	bullet "This entire slide is indented 20 characters from the left"
+	bullet "Useful for creating margins or emphasis"
+
+slide
+	config "pad.right", 20
+	title "Right Padding Example"  
+	bullet "This slide has 20 characters of right padding"
+	bullet "Content wraps earlier to respect the margin"
+	bullet "Very long lines will wrap sooner than normal to accommodate the right padding setting"
+
+slide
+	config "pad.title", 3
+	title "Title Padding"
+	bullet "The title has 3 extra lines of padding below it"
+	bullet "Creates more separation between title and content"
+
+slide
+	config :default
+	title "Restored Default Settings"
+	bullet "This slide combines restores the default layout options"
+	bullet "Centered title with normal padding on all sides"

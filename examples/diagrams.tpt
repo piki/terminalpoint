@@ -1,0 +1,111 @@
+slide
+	title "Diagram Examples"
+	bullet "This presentation demonstrates inline diagrams and ASCII art"
+	bullet "Using the `pre` command for monospaced content"
+
+slide
+	title "Simple Box Diagram"
+	pre <<-'EOF'
+ /----------------\
+ | draw pictures! |
+ \----------------/
+EOF
+
+slide
+	title "Flow Chart"
+	pre <<-'EOF'
+    Start
+      |
+      v
+ +---------+
+ | Process |
+ +---------+
+      |
+      v
+     End
+EOF
+
+slide
+	title "Network Diagram"
+	pre <<-'EOF'
+ Internet ---- Router ---- Switch ---- Computers
+     |                        |
+     |                        +--- Printer
+     |
+ External
+ Services
+EOF
+
+slide
+	title "Centered Diagram"
+	pre center <<-'EOF'
+      Database
+         |
+     API Server
+    /    |     \
+  Web  Mobile  CLI
+EOF
+
+slide
+	title "System Architecture"
+	pre <<-'EOF'
+ ┌─────────────┐    ┌─────────────┐    ┌───────────────┐
+ │   Frontend  │───▶│   Backend   │───▶│  Database     │
+ │   (React)   │    │   (Node.js) │    │ (PlanetScale) │
+ └─────────────┘    └─────────────┘    └───────────────┘
+       │                    │                  │
+       │                    │                  │
+       ▼                    ▼                  ▼
+ ┌──────────────┐    ┌─────────────┐    ┌─────────────┐
+ │    CDN       │    │    Cache    │    │   Backups   │
+ │ (CloudFlare) │    │   (Redis)   │    │    (S3)     │
+ └──────────────┘    └─────────────┘    └─────────────┘
+EOF
+
+slide
+	title "Git Workflow"
+	pre <<-'EOF'
+ main ──●──●──●──●───●──●──●
+            \       /
+             ●──●──●
+             feature
+EOF
+
+slide
+	title "Data Flow"
+	pre center <<-'EOF'
+ Input → Processing → Output
+   ↓         ↓         ↓
+ Store    Validate   Format
+   ↓         ↓         ↓
+  Log      Error     Display
+         Handling
+EOF
+
+slide
+	title "Simple Charts"
+	pre <<-'EOF'
+ Sales by Quarter
+ 
+ Q1 ████████████ 120K
+ Q2 ████████████████ 160K  
+ Q3 ██████████████████████ 220K
+ Q4 ████████████████ 160K
+ 
+ Total: 660K
+EOF
+
+slide
+	title "Mixed Content"
+	bullet "You can mix bullets with diagrams:"
+	pre <<-'EOF'
+ User Input
+     |
+     v
+ Validation ──❌──> Error Message
+     |
+     ✅
+     v
+ Save to DB
+EOF
+	bullet "Perfect for explaining processes step by step"

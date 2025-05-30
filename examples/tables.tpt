@@ -1,0 +1,116 @@
+slide
+	title "Table Examples"
+	bullet "This presentation demonstrates table formatting"
+	bullet "Using the `table` command with nested arrays"
+
+slide
+	title "Simple Table"
+	table [
+		:header,
+		["Name", "Age", "City"],
+		["Alice", "25", "New York"],
+		["Bob", "30", "San Francisco"],
+		["Charlie", "35", "Chicago"]
+	]
+
+slide
+	title "Product Comparison"
+	table [
+		:header,
+		["Feature", "Basic", "Pro", "Enterprise"],
+		["Users", "1", "10", "Unlimited"],
+		["Storage", "1GB", "100GB", "1TB"],
+		["Support", "Email", "Chat", "Phone"],
+		["Price", "$9", "$49", "$199"]
+	]
+
+slide
+	title "Financial Data"
+	table [
+		:header,
+		["Quarter", "Revenue", "Expenses", "Profit"],
+		["Q1 2024", "$125K", "$95K", "#{fmt 'green', '$30K'}"],
+		["Q2 2024", "$150K", "$110K", "#{fmt 'green', '$40K'}"],
+		["Q3 2024", "$175K", "$185K", "#{fmt 'red', '($10K)'}"],
+		["Q4 2024", "$200K", "$140K", "#{fmt 'green', '$60K'}"]
+	]
+
+slide
+	title "Multi-line Table Declaration"
+	table [
+		:header,
+		[
+			"Project",
+			"Status", 
+			"Deadline",
+			"Assigned"
+		],
+		[
+			"Website Redesign",
+			"In Progress",
+			"2024-06-15",
+			"Design Team"
+		],
+		[
+			"Mobile App",
+			"Planning",
+			"2024-08-01", 
+			"Dev Team"
+		],
+		[
+			"API Integration",
+			"Complete",
+			"2024-05-30",
+			"Backend Team"
+		]
+	]
+
+slide
+	title "Mixed Content with Table"
+	bullet "Here's our server status:"
+	table [
+		:header,
+		["Server", "Status", "CPU", "Memory"],
+		["web-01", "Online", "15%", "45%"],
+		["web-02", "Online", "22%", "38%"],
+		["db-01", "Online", "8%", "67%"],
+		["cache-01", "Offline", "0%", "0%"]
+	]
+	bullet "Server cache-01 needs attention"
+
+slide
+	title "Styled Table Content"
+	bullet "Tables support markdown in cells:"
+	table [
+		:header,
+		["Item", "Status", "Notes"],
+		["Task 1", "**Complete**", "Finished `on time`"],
+		["Task 2", "*In Progress*", "Due __tomorrow__ but waiting for **code review** from the _senior developer_ who is currently `out of office` until next week"],
+		["Task 3", "**Blocked**", "Waiting for `API`"]
+	]
+
+slide
+	title "Large Dataset"
+	table [
+		:header,
+		["ID", "Name", "Department", "Salary", "Years"],
+		["001", "John Smith", "Engineering", "$95,000", "3"],
+		["002", "Jane Doe", "Marketing", "$75,000", "2"],
+		["003", "Bob Johnson", "Sales", "$85,000", "5"],
+		["004", "Alice Brown", "HR", "$70,000", "1"],
+		["005", "Charlie Wilson", "Engineering", "$105,000", "7"],
+		["006", "Diana Prince", "Design", "$80,000", "4"],
+		["007", "Frank Miller", "Operations", "$90,000", "6"]
+	]
+
+slide
+	title "Configuration Table"
+	bullet "Environment settings:"
+	table [
+		:header,
+		["Setting", "Development", "Staging", "Production"],
+		["DEBUG", "true", "false", "false"],
+		["DB_HOST", "localhost", "stage-db", "prod-db"],
+		["CACHE_TTL", "0", "300", "3600"],
+		["LOG_LEVEL", "debug", "info", "error"]
+	]
