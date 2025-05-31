@@ -10,6 +10,14 @@ slide
 	bullet "Normal bullet spacing"
 
 slide
+	title "Indented bullets"
+	bullet "Normal indentation"
+	bullet 2, "Level 2"
+	bullet 3, "Level 3"
+	bullet 2, "Back to level 2: this is the longest one, too long, so long that it's going to have to wrap around"
+	bullet "Top level again"
+
+slide
 	config "title.position", "left"
 	title "Left-Aligned Title"
 	bullet "This title is centered horizontally"

@@ -67,11 +67,40 @@ class Entry
 		lines << line unless line.empty?
 		lines
 	end
+
+	# Convert simple markdown formatting to ANSI sequences.  Supported:
+	# **bold**, __bold__, *italics*, _underlines_, and `backticks`
+	def mini_markdown(s)
+		# Backticks prevent other markdown formatting, so we split the string
+		# according to backticks and apply other markdown formatting only
+		# in the even-numbered segments and the last segment.
+		split = s.split(/`/, -1)
+		split = split.each_with_index.map{|tok, i|
+			if i % 2 == 0 || i == split.size - 1
+				tok.
+					gsub(/~([^~]*)~/) { |txt| TerminalPoint.ansi(9, txt[1..-2]) }.
+					gsub(/\*\*([^*]*)\*\*/) { |txt| TerminalPoint.ansi(1, txt[2..-3]) }.
+					gsub(/__([^_]*)__/) { |txt| TerminalPoint.ansi(1, txt[2..-3]) }.
+					gsub(/\*(\w[^*]*)\*/) { |txt| TerminalPoint.ansi(3, txt[1..-2]) }.
+					gsub(/\b_([^_]*)_\b/) { |txt| TerminalPoint.ansi(4, txt[1..-2]) }
+			else
+				TerminalPoint.fmt(CONFIG['code.color'], tok)
+			end
+		}
+
+		# If we had an odd number of backticks, then the last one shows up as
+		# a literal ` character.
+		if split.size % 2 == 0
+			split[..-2].join + "`" + split[-1]
+		else
+			split.join
+		end
+	end
 end
 
 class Title < Entry
 	def initialize(txt)
-		@txt = txt
+		@txt = mini_markdown(txt)
 		@title_box = CONFIG['title.box']
 		@title_color = CONFIG['title.color']
 		@title_box_color = CONFIG['title.box.color']
@@ -133,17 +162,27 @@ class Title < Entry
 end
 
 class Bullet < Entry
-	def initialize(txt)
-		@txt = txt
+	def initialize(*args)
+		indent, txt = case args.size
+			when 1
+				[ 1, args[0] ]
+			when 2
+				[ args[0], args[1] ]
+			else
+				raise "Invalid arguments to bullet"
+		end
+
+		@txt = mini_markdown(txt)
 		@bullet_text = TerminalPoint.fmt(CONFIG['bullet.color'], CONFIG['bullet.text'])
-		@pad_left = CONFIG['pad.left']
+		@pad_indent = 4 * (indent - 1)
+		@pad_left = CONFIG['pad.left'] + @pad_indent
 		@pad_right = CONFIG['pad.right']
 		@text_color = CONFIG['text.color']
 		@wrap_width = COLS - @pad_left - display_width(@bullet_text) - 1 - @pad_right
 	end
 
 	def width
-		display_width(@bullet_text) + 1 + [ display_width(@txt), @wrap_width ].min
+		display_width(@bullet_text) + 1 + [ @pad_indent + display_width(@txt), @wrap_width ].min
 	end
 
 	def display(max_content_width)
@@ -169,7 +208,13 @@ end
 
 class Table < Entry
 	def initialize(arr)
-		@arr = arr
+		arr = arr.map {|row|
+			if row.is_a?(Array)
+				row.map{|col| mini_markdown(col)}
+			else
+				row
+			end
+		}
 
 		ncolumns = arr.map {|row| row.size if row.is_a?(Array)}.compact.max
 		col_widths = (0...ncolumns).map do |col|
@@ -324,23 +369,15 @@ class Slide
 	end
 
 	def title(s)
-		@entries << Title.new(mini_markdown(s))
+		@entries << Title.new(s)
 	end
 
-	def bullet(s)
-		@entries << Bullet.new(mini_markdown(s))
+	def bullet(*args)
+		@entries << Bullet.new(*args)
 	end
 
 	def table(t)
-		@entries << Table.new(
-			t.map {|row|
-				if row.is_a?(Array)
-					row.map{|col| mini_markdown(col)}
-				else
-					row
-				end
-			}
-		)
+		@entries << Table.new(t)
 	end
 
 	def pre(txt)
@@ -349,36 +386,6 @@ class Slide
 
 	def empty?
 		!@title.nil? || !@bullets.empty?
-	end
-
-private
-	# Convert simple markdown formatting to ANSI sequences.  Supported:
-	# **bold**, __bold__, *italics*, _underlines_, and `backticks`
-	def mini_markdown(s)
-		# Backticks prevent other markdown formatting, so we split the string
-		# according to backticks and apply other markdown formatting only
-		# in the even-numbered segments and the last segment.
-		split = s.split(/`/, -1)
-		split = split.each_with_index.map{|tok, i|
-			if i % 2 == 0 || i == split.size - 1
-				tok.
-					gsub(/~([^~]*)~/) { |txt| TerminalPoint.ansi(9, txt[1..-2]) }.
-					gsub(/\*\*([^*]*)\*\*/) { |txt| TerminalPoint.ansi(1, txt[2..-3]) }.
-					gsub(/__([^_]*)__/) { |txt| TerminalPoint.ansi(1, txt[2..-3]) }.
-					gsub(/\*(\w[^*]*)\*/) { |txt| TerminalPoint.ansi(3, txt[1..-2]) }.
-					gsub(/\b_([^_]*)_\b/) { |txt| TerminalPoint.ansi(4, txt[1..-2]) }
-			else
-				TerminalPoint.fmt(CONFIG['code.color'], tok)
-			end
-		}
-
-		# If we had an odd number of backticks, then the last one shows up as
-		# a literal ` character.
-		if split.size % 2 == 0
-			split[..-2].join + "`" + split[-1]
-		else
-			split.join
-		end
 	end
 end
 
@@ -406,8 +413,8 @@ class TerminalPoint
 
 	# [DSL] add a bullet element to the slide
 	#   s: markdown or ANSI text to display
-	def bullet(s)
-		@current_slide.bullet(s)
+	def bullet(*args)
+		@current_slide.bullet(*args)
 	end
 
 	# [DSL] add a table element to the slide
