@@ -54,9 +54,6 @@ class Entry
 		line = ""
 
 		words.each do |word|
-			#puts "word = #{word.inspect}"
-			#puts "word.size = #{word.length}"
-			#puts "word.display_size = #{display_width(word)}"
 			if line.empty?
 				line = word
 			elsif (display_width(line) + 1 + display_width(word)) <= max_length
@@ -78,7 +75,7 @@ class Title < Entry
 	end
 
 	def width
-		@txt.size
+		display_width(@txt)
 	end
 
 	def display(max_content_width)
@@ -102,7 +99,7 @@ class Title < Entry
 			when "right"
 				COLS - CONFIG['pad.right'] - display_width(real_txt)
 			when "content-center"
-				CONFIG['pad.left'] + (max_content_width + CONFIG['bullet.text'].size + 1 - display_width(real_txt))/2
+				CONFIG['pad.left'] + (max_content_width - display_width(real_txt))/2
 			else
 				raise "unknown title.position: #{CONFIG['title.position']}"
 		end
@@ -131,25 +128,30 @@ end
 class Bullet < Entry
 	def initialize(txt)
 		@txt = txt
+		@bullet_text = TerminalPoint.fmt(CONFIG['bullet.color'], CONFIG['bullet.text'])
+		@pad_left = CONFIG['pad.left']
+		@pad_right = CONFIG['pad.right']
+		@text_color = CONFIG['text.color']
+		@wrap_width = COLS - @pad_left - display_width(@bullet_text) - 1 - @pad_right
 	end
 
 	def width
-		display_width(@txt)
+		display_width(@bullet_text) + 1 + [ display_width(@txt), @wrap_width ].min
 	end
 
 	def display(max_content_width)
-		bullet_pad = " " * CONFIG['pad.left']
+		bullet_pad = " " * @pad_left
 
-		split = wrap_text(@txt, COLS - bullet_pad.size - CONFIG['bullet.text'].size - 1 - CONFIG['pad.right'])
+		split = wrap_text(@txt, @wrap_width)
 		split.each_with_index do |part, j|
 			print bullet_pad
 			if j == 0
-				print TerminalPoint.fmt(CONFIG['bullet.color'], CONFIG['bullet.text'])
+				print @bullet_text
 			else
-				print " " * CONFIG['bullet.text'].size
+				print " " * display_width(@bullet_text)
 			end
 			print " "
-			puts TerminalPoint.fmt(CONFIG['text.color'], part)
+			puts TerminalPoint.fmt(@text_color, part)
 		end
 
 		puts
@@ -296,10 +298,7 @@ class Slide
 	end
 
 	def display
-		wrap_width = COLS - CONFIG['pad.left'] - CONFIG['bullet.text'].size - 1 - CONFIG['pad.right']
-
 		max_content_width = @entries.map{|s| s.width}.max
-		max_content_width = [max_content_width, wrap_width].min
 
 		top_pad = "\n" * CONFIG['pad.top']
 		puts top_pad
@@ -415,7 +414,7 @@ class TerminalPoint
 	#   pre center 'something'
 	def center(txt)
 		txt = txt.lines
-		max_width = txt.map {|s| s.size}.max
+		max_width = txt.map {|s| display_width(s)}.max
 		left_pad = " " * ((COLS - max_width)/2)
 		txt.map {|s| "#{left_pad}#{s}"}.join("")
 	end
