@@ -141,3 +141,20 @@ slide
 		["Error", "2"]
 	]
 	bullet "Table aligns with the right margin"
+
+slide
+	config :default
+	config 'title.box', 'bottom'
+	config 'title.color', 'bold orange'
+	title "Ways to make slides"
+	bullet "Here are four ways to make slides for an important presentation"
+	table [
+		:header,
+		["Software", "Cost", "Disk space required", "Notes"],
+
+		["Powerpoint", "$129", "3GB", "Very corporate"],
+		["Keynote", 'free on expensive hardware', "543MB", "Very pretty"],
+		["Google Slides", 'free', "However big Chrome is now", "Cheap"],
+		[rainbow('TerminalPoint'), 'free', "16KB", "Makes you look like a big tech dork"],
+	]
+	bullet "If you're here, you already know which one's the best"
