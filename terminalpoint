@@ -45,7 +45,7 @@ COLOR = {
 
 class Entry
 	def display_width(s)
-		s.gsub(/\x1b\[[0-9;]+m/, '').size
+		TerminalPoint.display_width(s)
 	end
 
 	def wrap_text(text, max_length)
@@ -428,7 +428,7 @@ class TerminalPoint
 	#   pre center 'something'
 	def center(txt)
 		txt = txt.lines
-		max_width = txt.map {|s| display_width(s)}.max
+		max_width = txt.map {|s| TerminalPoint.display_width(s)}.max
 		left_pad = " " * ((COLS - max_width)/2)
 		txt.map {|s| "#{left_pad}#{s}"}.join("")
 	end
@@ -467,6 +467,10 @@ class TerminalPoint
 	#   fmt('bg:green #ff0000 italic', 'Ugly!')
 	def fmt(col, s)
 		TerminalPoint.fmt(col, s)
+	end
+
+	def TerminalPoint.display_width(s)
+		s.gsub(/\x1b\[[0-9;]+m/, '').size
 	end
 
 	# Map a logical format to a string of ANSI codes
