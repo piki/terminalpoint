@@ -1,5 +1,7 @@
 TerminalPoint lets you create beautifully minimalist slides presentations for display in a terminal, with `less -r`.  The configuration language is a simple Ruby DSL.
 
+<img width="1141" alt="Screenshot 2025-05-30 at 10 40 41 PM" src="https://github.com/user-attachments/assets/1fcbff83-1724-431a-9437-10de8349668f" />
+
 # Usage
 
 ```
