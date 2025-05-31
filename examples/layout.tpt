@@ -22,6 +22,13 @@ slide
 	bullet "Creates a different visual emphasis"
 
 slide
+	config "title.position", "content-center"
+	title "Title centered above content"
+	bullet "This title is centered above the content below it"
+	bullet "Sometimes better than `center` when content is small"
+
+slide
+	config "title.position", :default
 	config "pad.top", 5
 	title "Extra Top Padding"
 	bullet "This slide has 5 lines of top padding"

@@ -104,8 +104,9 @@ slide
 	]
 
 slide
-	title "Configuration Table"
-	bullet "Environment settings:"
+	config "table.header.color", "bold magenta"
+	title "Custom Header Colors"
+	bullet "Table headers now use bold magenta styling:"
 	table [
 		:header,
 		["Setting", "Development", "Staging", "Production"],
@@ -114,3 +115,29 @@ slide
 		["CACHE_TTL", "0", "300", "3600"],
 		["LOG_LEVEL", "debug", "info", "error"]
 	]
+
+slide
+	config "table.position", "left"
+	title "Left-Aligned Table"
+	bullet "This table is positioned to the left instead of center:"
+	table [
+		:header,
+		["Item", "Quantity", "Price"],
+		["Widget A", "10", "$5.00"],
+		["Widget B", "5", "$12.00"],
+		["Widget C", "15", "$3.50"]
+	]
+	bullet "Notice how the table aligns with the left margin"
+
+slide
+	config "table.position", "right"
+	title "Right-Aligned Table"
+	bullet "This table is positioned to the right:"
+	table [
+		:header,
+		["Status", "Count"],
+		["Active", "42"],
+		["Pending", "7"],
+		["Error", "2"]
+	]
+	bullet "Table aligns with the right margin"

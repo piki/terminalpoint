@@ -82,7 +82,25 @@ slide
 
 slide
 	config "title.box", "box double"
+	config "title.box.color", "blue"
 	title "Title Box: Double Border"
 	bullet "This title has a double-line box around it"
 	bullet "The box draws attention to important sections"
 	bullet "Perfect for highlighting key topics or sections"
+
+slide
+	title "Custom Bullet Character"
+	config "bullet.text", "•"
+	bullet "These bullets use a dot instead of the default »"
+	config "bullet.text", "■"
+	bullet "Bullet character can be customized per bullet"
+	config "bullet.text", "♦︎"
+	bullet "Try different symbols like *, -, or ►"
+	config "bullet.text", :default
+
+slide
+	config "code.color", "italic green bg:dark-grey"
+	title "Custom Code Styling"
+	bullet "Code in `backticks` now uses custom styling"
+	bullet "This `code block` is italic green on dark grey"
+	bullet "Default was bold with dark grey background"
