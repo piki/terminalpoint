@@ -72,6 +72,13 @@ end
 class Title < Entry
 	def initialize(txt)
 		@txt = txt
+		@title_box = CONFIG['title.box']
+		@title_color = CONFIG['title.color']
+		@title_box_color = CONFIG['title.box.color']
+		@title_position = CONFIG['title.position']
+		@pad_left = CONFIG['pad.left']
+		@pad_right = CONFIG['pad.right']
+		@pad_title = CONFIG['pad.title']
 	end
 
 	def width
@@ -79,7 +86,7 @@ class Title < Entry
 	end
 
 	def display(max_content_width)
-		title_box = CONFIG['title.box'].downcase.split
+		title_box = @title_box.downcase.split
 		box_dbl = title_box.include?('double')
 		box_box = title_box.include?('box')
 		box_l = box_box || title_box.include?('left')
@@ -87,29 +94,29 @@ class Title < Entry
 		box_t = box_box || title_box.include?('top')
 		box_b = box_box || title_box.include?('bottom')
 
-		real_txt = TerminalPoint.fmt(CONFIG['title.color'], @txt)
-		real_txt = (TerminalPoint.fmt(CONFIG['title.box.color'], (box_dbl ? "║ " : '│ ')) + real_txt) if box_l
-		real_txt = (real_txt + TerminalPoint.fmt(CONFIG['title.box.color'], (box_dbl ? " ║" : ' │'))) if box_r
+		real_txt = TerminalPoint.fmt(@title_color, @txt)
+		real_txt = (TerminalPoint.fmt(@title_box_color, (box_dbl ? "║ " : '│ ')) + real_txt) if box_l
+		real_txt = (real_txt + TerminalPoint.fmt(@title_box_color, (box_dbl ? " ║" : ' │'))) if box_r
 
-		left_title_pad = " " * case CONFIG['title.position']
+		left_title_pad = " " * case @title_position
 			when "center"
 				(COLS - display_width(real_txt))/2
 			when "left"
-				CONFIG['pad.left']
+				@pad_left
 			when "right"
-				COLS - CONFIG['pad.right'] - display_width(real_txt)
+				COLS - @pad_right - display_width(real_txt)
 			when "content-center"
-				CONFIG['pad.left'] + (max_content_width - display_width(real_txt))/2
+				@pad_left + (max_content_width - display_width(real_txt))/2
 			else
-				raise "unknown title.position: #{CONFIG['title.position']}"
+				raise "unknown title.position: #{@title_position}"
 		end
-		below_title_pad = "\n" * CONFIG['pad.title']
+		below_title_pad = "\n" * @pad_title
 		if box_t
 			top_line = ""
 			top_line << (box_dbl ? "╔═" : "┌─") if box_l
 			top_line << (box_dbl ? "═" : "─") * display_width(@txt)
 			top_line << (box_dbl ? "═╗" : "─┐") if box_r
-			puts left_title_pad + TerminalPoint.fmt(CONFIG['title.box.color'], top_line)
+			puts left_title_pad + TerminalPoint.fmt(@title_box_color, top_line)
 		end
 		puts "#{left_title_pad}#{real_txt}"
 		if box_b
@@ -117,7 +124,7 @@ class Title < Entry
 			bottom_line << (box_dbl ? "╚═" : "└─") if box_l
 			bottom_line << (box_dbl ? "═" : "─") * display_width(@txt)
 			bottom_line << (box_dbl ? "═╝" : "─┘") if box_r
-			puts left_title_pad + TerminalPoint.fmt(CONFIG['title.box.color'], bottom_line)
+			puts left_title_pad + TerminalPoint.fmt(@title_box_color, bottom_line)
 		end
 		puts below_title_pad
 
@@ -185,6 +192,11 @@ class Table < Entry
 		@arr = arr
 		@twidth = twidth
 		@col_widths = col_widths
+
+		@table_position = CONFIG['table.position']
+		@table_header_color = CONFIG['table.header.color']
+		@pad_left = CONFIG['pad.left']
+		@pad_right = CONFIG['pad.right']
 	end
 
 	def width
@@ -194,15 +206,15 @@ class Table < Entry
 	def display(max_content_width)
 		lines = 0
 
-		left_pad = " " * case CONFIG['table.position']
+		left_pad = " " * case @table_position
 			when "left"
-				CONFIG['pad.left']
+				@pad_left
 			when "center"
 				(COLS - @twidth)/2
 			when "right"
-				COLS - CONFIG['pad.right'] - @twidth
+				COLS - @pad_right - @twidth
 			else
-				raise "unknown table.position: #{CONFIG['table.position']}"
+				raise "unknown table.position: #{@table_position}"
 		end
 
 		is_header = false
@@ -228,7 +240,7 @@ class Table < Entry
 						cell_part = cell_parts[cell_row]
 						more_cell_rows ||= cell_parts.size > cell_row + 1
 						if is_header
-							print TerminalPoint.fmt(CONFIG['table.header.color'], borrow_formatting(cell_part, cell_parts[...cell_row]))
+							print TerminalPoint.fmt(@table_header_color, borrow_formatting(cell_part, cell_parts[...cell_row]))
 						else
 							print borrow_formatting(cell_part, cell_parts[...cell_row])
 						end
@@ -295,12 +307,14 @@ end
 class Slide
 	def initialize
 		@entries = []
+
+		@pad_top = CONFIG['pad.top']
 	end
 
 	def display
 		max_content_width = @entries.map{|s| s.width}.max
 
-		top_pad = "\n" * CONFIG['pad.top']
+		top_pad = "\n" * @pad_top
 		puts top_pad
 		lines = top_pad.size
 
