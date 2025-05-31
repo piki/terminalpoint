@@ -41,6 +41,7 @@ COLOR = {
 	"white" => "97",
 	"pink" => "38;5;206",
 	"orange" => "38;5;202",
+	"purple" => "38;5;91",
 }
 
 class Entry
@@ -474,6 +475,13 @@ class TerminalPoint
 	#   fmt('bg:green #ff0000 italic', 'Ugly!')
 	def fmt(col, s)
 		TerminalPoint.fmt(col, s)
+	end
+
+	# [DSL] decorate the text with rainbow colors
+	#   s: the string to decorate
+	def rainbow(s)
+		colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple']
+		s.chars.each_with_index.map{|c, i| fmt(colors[i % colors.size], c)}.join
 	end
 
 	def TerminalPoint.display_width(s)
