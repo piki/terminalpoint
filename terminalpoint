@@ -6,7 +6,7 @@ ROWS = IO.console.winsize[0] - 1   # leave one for the `less` status bar
 COLS = IO.console.winsize[1]
 CONFIG = {
 	"title.color" => "bold",
-	"title.position" => "center",  # or "left", or "right", or "block-center"
+	"title.position" => "center",  # or "left", or "right", or "content-center"
 	"title.box" => "none", # or any combination of "top", "bottom", "left", "right", "double"; "box" means "top bottom left right"
 	"title.box.color" => "plain",
 	"table.header.color" => "bold",
@@ -101,7 +101,7 @@ class Title < Entry
 				CONFIG['pad.left']
 			when "right"
 				COLS - CONFIG['pad.right'] - display_width(real_txt)
-			when "block-center"
+			when "content-center"
 				CONFIG['pad.left'] + (max_content_width + CONFIG['bullet.text'].size + 1 - display_width(real_txt))/2
 			else
 				raise "unknown title.position: #{CONFIG['title.position']}"
