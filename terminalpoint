@@ -114,6 +114,20 @@ class Entry
 			end
 		}.join(' ')
 	end
+
+	def borrow_formatting(s, parts)
+		if !s.start_with?("\e[")
+			if parts.join(' ') =~ /.*(\e\[[0-9;]+m)/
+				s = $1 + s
+			end
+		end
+
+		if !s.end_with?("\e[0m")
+			s = s + "\e[0m"
+		end
+
+		s
+	end
 end
 
 class Title < Entry
@@ -218,7 +232,8 @@ class Bullet < Entry
 	def display(max_content_width)
 		bullet_pad = " " * @pad_left
 
-		split = wrap_text(@txt, @wrap_width)
+		fmt_txt = TerminalPoint.fmt(@text_color, @txt)
+		split = wrap_text(fmt_txt, @wrap_width)
 		split.each_with_index do |part, j|
 			print bullet_pad
 			if j == 0
@@ -227,7 +242,7 @@ class Bullet < Entry
 				print " " * display_width(@bullet_text)
 			end
 			print " "
-			puts TerminalPoint.fmt(@text_color, part)
+			puts borrow_formatting(part, split[...j])
 		end
 
 		puts
@@ -345,21 +360,6 @@ class Table < Entry
 		lines += 2
 
 		lines
-	end
-
-private
-	def borrow_formatting(s, parts)
-		if !s.start_with?("\e[")
-			if parts.join(' ') =~ /.*(\e\[[0-9;]+m)/
-				s = $1 + s
-			end
-		end
-
-		if !s.end_with?("\e[0m")
-			s = s + "\e[0m"
-		end
-
-		s
 	end
 end
 
