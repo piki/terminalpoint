@@ -97,6 +97,23 @@ class Entry
 			split.join
 		end
 	end
+
+	def invert_color(col)
+		col.split(/\s+/).map {|c|
+			case c
+				when /^bg:$1/
+					$1
+				else
+					if COLOR[c].size >= 2
+						# ANSI color codes are all 2+ characters
+						"bg:#{c}"
+					else
+						# Supported ANSI font styles are all 1 character
+						c
+					end
+			end
+		}.join(' ')
+	end
 end
 
 class Title < Entry
@@ -123,6 +140,7 @@ class Title < Entry
 		box_r = box_box || title_box.include?('right')
 		box_t = box_box || title_box.include?('top')
 		box_b = box_box || title_box.include?('bottom')
+		box_bar = title_box.include?('bar')
 
 		real_txt = TerminalPoint.fmt(@title_color, @txt)
 		real_txt = (TerminalPoint.fmt(@title_box_color, (box_dbl ? "║ " : '│ ')) + real_txt) if box_l
@@ -141,24 +159,35 @@ class Title < Entry
 				raise "unknown title.position: #{@title_position}"
 		end
 		below_title_pad = "\n" * @pad_title
-		if box_t
-			top_line = ""
-			top_line << (box_dbl ? "╔═" : "┌─") if box_l
-			top_line << (box_dbl ? "═" : "─") * display_width(@txt)
-			top_line << (box_dbl ? "═╗" : "─┐") if box_r
-			puts left_title_pad + TerminalPoint.fmt(@title_box_color, top_line)
-		end
-		puts "#{left_title_pad}#{real_txt}"
-		if box_b
-			bottom_line = ""
-			bottom_line << (box_dbl ? "╚═" : "└─") if box_l
-			bottom_line << (box_dbl ? "═" : "─") * display_width(@txt)
-			bottom_line << (box_dbl ? "═╝" : "─┘") if box_r
-			puts left_title_pad + TerminalPoint.fmt(@title_box_color, bottom_line)
+		if box_bar
+			sides_color = invert_color(@title_box_color)
+			puts TerminalPoint.fmt(@title_box_color, "▄" * COLS)
+			print TerminalPoint.fmt(sides_color, left_title_pad)
+			print TerminalPoint.fmt(@title_color, @txt)
+			puts TerminalPoint.fmt(sides_color, " " * (COLS - left_title_pad.size - display_width(@txt)))
+			puts TerminalPoint.fmt(@title_box_color, "▀" * COLS)
+		else
+			if box_t
+				top_line = ""
+				top_line << (box_dbl ? "╔═" : "┌─") if box_l
+				top_line << (box_dbl ? "═" : "─") * display_width(@txt)
+				top_line << (box_dbl ? "═╗" : "─┐") if box_r
+				puts left_title_pad + TerminalPoint.fmt(@title_box_color, top_line)
+			end
+
+			puts "#{left_title_pad}#{real_txt}"
+
+			if box_b
+				bottom_line = ""
+				bottom_line << (box_dbl ? "╚═" : "└─") if box_l
+				bottom_line << (box_dbl ? "═" : "─") * display_width(@txt)
+				bottom_line << (box_dbl ? "═╝" : "─┘") if box_r
+				puts left_title_pad + TerminalPoint.fmt(@title_box_color, bottom_line)
+			end
 		end
 		puts below_title_pad
 
-		1 + below_title_pad.size + (box_t ? 1 : 0) + (box_b ? 1 : 0)
+		1 + below_title_pad.size + (box_t ? 1 : 0) + (box_b ? 1 : 0) + (box_bar ? 2 : 0)
 	end
 end
 
