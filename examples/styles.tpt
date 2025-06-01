@@ -89,6 +89,15 @@ slide
 	bullet "Perfect for highlighting key topics or sections"
 
 slide
+	config "title.box", "bar"
+	config "title.box.color", "blue"
+	config "title.color", "white bg:blue"
+	config "title.position", "left"
+	title "Title Box: Bar"
+	bullet "This title is displayed on a contrasting-color bar"
+	bullet 'It can look quite striking with `config "title.position", "left"` or `config "title.position", "right"`'
+
+slide
 	title "Custom Bullet Character"
 	config "bullet.text", "•"
 	bullet "These bullets use a dot instead of the default »"
