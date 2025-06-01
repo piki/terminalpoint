@@ -537,7 +537,7 @@ class TerminalPoint
 		# If there are already ANSI codes in `s`, like from the user using `#{fmt('bold', '...')}` in their config file
 		# rewrite the end of those sequences to apply the overall formatting for the string.
 		sfix = s.gsub("\x1b[0m", "\x1b[0;#{codes}m")
-		"\x1b[#{codes}m#{sfix}\x1b[0m"
+		"\x1b[0;#{codes}m#{sfix}\x1b[0m"
 	end
 end
 
