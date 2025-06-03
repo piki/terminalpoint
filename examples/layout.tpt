@@ -5,6 +5,7 @@ slide
 
 slide
 	title "This slide has columns"
+	bullet "Above the columns"
 	column
 		bullet "Some descriptive text over here on the left"
 		bullet "Wrapped as needed"
@@ -12,11 +13,21 @@ slide
 	column
 		table [
 			:header,
-			["Type", "Purpose"],
+			["Table type", "Purpose"],
 			["Dining", "Eating"],
 			["Bedside", "Charging phones"],
 			["End", "Next to the couch"]
 		]
+	column
+		center pre <<-'EOF'
+/-----\
+| * * |
+|  v  |
+|`---'|
+\_____/
+EOF
+	end_columns
+	bullet "Under the columns"
 
 slide
 	title "Default Layout"
