@@ -46,7 +46,7 @@ pre <<-'EOF'
  \----------------/
 EOF
 ```
-* `pre center "Text"` displays an inline string or diagram, centered horizontally.
+* `center pre "Text"` displays an inline string or diagram, centered horizontally.
 * `table [ [ "a", "b" ], [ "c", "d" ] ]` adds a table to the current slide.  It's OK to declare your rows across several lines of the `.tpt` file.
 * `config "key", value` alters a configuration value, for layout and styling.
 * `color "key", value` adds a new custom color to the COLOR array, to be used by `fmt`.  The key can be any name (no spaces), and the value is a space-separated list of existing style names or six-digit hex colors.  For example: `color "pink", "#ff8899"`.

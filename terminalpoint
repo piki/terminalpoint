@@ -47,7 +47,18 @@ COLOR = {
 	"purple" => "38;5;91",
 }
 
-class ChildRenderBuffer
+class BufferBase
+	def child(xofs, yofs, width, height)
+		raise "child is too wide: #{xofs} + #{width} > #{@width}" if xofs + width > @width
+		raise "child is too tall: #{yofs} + #{height} > #{@height}" if yofs + height > @height
+
+		ChildRenderBuffer.new(width, height) do |x, y, dtxt|
+			self.write(xofs + x, yofs + y, dtxt)
+		end
+	end
+end
+
+class ChildRenderBuffer < BufferBase
 	attr_reader :width, :height
 	def initialize(width, height, &block)
 		@width = width
@@ -63,7 +74,7 @@ class ChildRenderBuffer
 	end
 end
 
-class RenderBuffer
+class RenderBuffer < BufferBase
 	attr_reader :width, :height
 	def initialize(width, height)
 		@width = width
@@ -80,15 +91,6 @@ class RenderBuffer
 		line << DecoratedTextSegment.new("", " " * gap) if gap > 0
 		line.push_all(dtxt)
 		dtxt.width
-	end
-
-	def child(xofs, yofs, width, height)
-		raise "child is too wide: #{xofs} + #{width} > #{@width}" if xofs + width > @width
-		raise "child is too tall: #{yofs} + #{height} > #{@height}" if yofs + height > @height
-
-		ChildRenderBuffer.new(width, height) do |x, y, dtxt|
-			self.write(xofs + x, yofs + y, dtxt)
-		end
 	end
 
 	def display
@@ -139,6 +141,27 @@ class Entry
 			TerminalPoint.color_to_codes(CONFIG[plain_color_key]),
 			TerminalPoint.color_to_codes(CONFIG['code.color']),
 			s)
+	end
+end
+
+class Center < Entry
+	def initialize(child)
+		raise "Child must be an Entry, not #{child.class}" unless child.is_a?(Entry)
+		@child = child
+	end
+
+	def width
+		@child.width
+	end
+
+	def min_width
+		@child.min_width
+	end
+
+	def render(buf, max_content_width)
+		real_width = [width, buf.width].min
+		left_pad = (buf.width - real_width)/2
+		@child.render(buf.child(left_pad, 0, real_width, buf.height), max_content_width)
 	end
 end
 
@@ -424,6 +447,10 @@ class Column < Entry
 		max_content_width = @entries.map{|s| s.width}.max
 		@entries.map { |e| e.display(max_content_width) }.sum
 	end
+
+	def wrap_last(&block)
+		@entries[-1] = block.call(@entries[-1])
+	end
 end
 
 class Slide
@@ -471,6 +498,14 @@ class Slide
 
 	def empty?
 		!@title.nil? || !@bullets.empty?
+	end
+
+	def wrap_last(&block)
+		if @current_column.nil?
+			@entries[-1] = block.call(@entries[-1])
+		else
+			@current_column.wrap_last(block)
+		end
 	end
 end
 
@@ -526,11 +561,8 @@ class TerminalPoint
 	# [DSL] center a `pre` element on the slide
 	# Usage:
 	#   pre center 'something'
-	def center(txt)
-		txt = txt.lines
-		max_width = txt.map {|s| TerminalPoint.display_width(s)}.max
-		left_pad = " " * ((COLS - max_width)/2)
-		txt.map {|s| "#{left_pad}#{s}"}.join("")
+	def center(entry)
+		@current_slide.wrap_last { |x| Center.new(x) }
 	end
 
 	# [DSL] change the value of a configuration key

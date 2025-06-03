@@ -38,7 +38,7 @@ EOF
 
 slide
 	title "Centered Diagram"
-	pre center <<-'EOF'
+	center pre <<-'EOF'
       Database
          |
      API Server
@@ -73,7 +73,7 @@ EOF
 
 slide
 	title "Data Flow"
-	pre center <<-'EOF'
+	center pre <<-'EOF'
  Input → Processing → Output
    ↓         ↓         ↓
  Store    Validate   Format
