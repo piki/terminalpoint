@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'io/console'
+require './lib/decorated_text'
 
 ROWS = IO.console.winsize[0] - 1   # leave one for the `less` status bar
 COLS = IO.console.winsize[1]
@@ -21,6 +22,7 @@ CONFIG = {
 	"code.color" => "bold bg:dark-grey",
 }
 COLOR = {
+	"plain" => "0",
 	"bold" => "1",
 	"italic" => "3",
 	"underlined" => "4",
@@ -44,60 +46,57 @@ COLOR = {
 	"purple" => "38;5;91",
 }
 
+class ChildRenderBuffer
+	attr_reader :width, :height
+	def initialize(width, height, &block)
+		@width = width
+		@height = height
+		@block = block
+	end
+
+	def write(x, y, dtxt)
+		raise "y is out of bounds: #{y} >= #{height}" if y >= @height
+		raise "x is out of bounds: #{x} + #{dtxt.width} >= #{@width}" if x + dtxt.width >= @width
+		
+		@block.call(x, y, dtxt)
+	end
+end
+
+class RenderBuffer
+	attr_reader :width, :height
+	def initialize(width, height)
+		@width = width
+		@height = height
+		@lines = (0...@height).map{ DecoratedText.new }
+	end
+
+	def write(x, y, dtxt)
+		raise "y is out of bounds: #{y} >= #{height}" if y >= @height
+		raise "x is out of bounds: #{x} + #{dtxt.width} >= #{@width}" if x + dtxt.width >= @width
+		line = @lines[y]
+		raise "overwrite on line #{y}: #{x} < #{line.width}" if x < line.width
+		gap = x - line.width
+		line << DecoratedTextSegment.new("", " " * gap) if gap > 0
+		line.push_all(dtxt)
+	end
+
+	def child(xofs, yofs, width, height)
+		raise "child is too wide: #{xofs} + #{width} > #{@width}" if xofs + width > @width
+		raise "child is too tall: #{yofs} + #{height} > #{@height}" if yofs + height > @height
+
+		ChildRenderBuffer.new(width, height) do |x, y, dtxt|
+			self.write(xofs + x, yofs + y, dtxt)
+		end
+	end
+
+	def display
+		@lines.each do |line|
+			puts line.to_ansi
+		end
+	end
+end
+
 class Entry
-	def display_width(s)
-		TerminalPoint.display_width(s)
-	end
-
-	def wrap_text(text, max_length)
-		words = text.split(/\s+/)
-		lines = []
-		line = ""
-
-		words.each do |word|
-			if line.empty?
-				line = word
-			elsif (display_width(line) + 1 + display_width(word)) <= max_length
-				line += " " + word
-			else
-				lines << line
-				line = word
-			end
-		end
-
-		lines << line unless line.empty?
-		lines
-	end
-
-	# Convert simple markdown formatting to ANSI sequences.  Supported:
-	# **bold**, __bold__, *italics*, _underlines_, and `backticks`
-	def mini_markdown(s)
-		# Backticks prevent other markdown formatting, so we split the string
-		# according to backticks and apply other markdown formatting only
-		# in the even-numbered segments and the last segment.
-		split = s.split(/`/, -1)
-		split = split.each_with_index.map{|tok, i|
-			if i % 2 == 0 || i == split.size - 1
-				tok.
-					gsub(/~([^~]*)~/) { |txt| TerminalPoint.ansi(9, txt[1..-2]) }.
-					gsub(/\*\*([^*]*)\*\*/) { |txt| TerminalPoint.ansi(1, txt[2..-3]) }.
-					gsub(/__([^_]*)__/) { |txt| TerminalPoint.ansi(1, txt[2..-3]) }.
-					gsub(/\*(\w[^*]*)\*/) { |txt| TerminalPoint.ansi(3, txt[1..-2]) }.
-					gsub(/\b_([^_]*)_\b/) { |txt| TerminalPoint.ansi(4, txt[1..-2]) }
-			else
-				TerminalPoint.fmt(CONFIG['code.color'], tok)
-			end
-		}
-
-		# If we had an odd number of backticks, then the last one shows up as
-		# a literal ` character.
-		if split.size % 2 == 0
-			split[..-2].join + "`" + split[-1]
-		else
-			split.join
-		end
-	end
-
 	def invert_color(col)
 		col.split(/\s+/).map {|c|
 			case c
@@ -128,25 +127,33 @@ class Entry
 
 		s
 	end
+
+	def markdown(plain_color, s)
+		DecoratedText.from_markdown(
+			plain_color,
+			TerminalPoint.color_to_codes(CONFIG['code.color']),
+			s)
+	end
 end
 
 class Title < Entry
 	def initialize(txt)
-		@txt = mini_markdown(txt)
 		@title_box = CONFIG['title.box']
-		@title_color = CONFIG['title.color']
-		@title_box_color = CONFIG['title.box.color']
+		@title_color = TerminalPoint.color_to_codes(CONFIG['title.color'])
+		@title_box_color = TerminalPoint.color_to_codes(CONFIG['title.box.color'])
 		@title_position = CONFIG['title.position']
 		@pad_left = CONFIG['pad.left']
 		@pad_right = CONFIG['pad.right']
 		@pad_title = CONFIG['pad.title']
+		@txt = markdown(TerminalPoint.color_to_codes(CONFIG['title.color']), txt)
+			
 	end
 
 	def width
-		display_width(@txt)
+		@txt.width
 	end
 
-	def display(max_content_width)
+	def render(buf, max_content_width)
 		title_box = @title_box.downcase.split
 		box_dbl = title_box.include?('double')
 		box_box = title_box.include?('box')
@@ -156,52 +163,55 @@ class Title < Entry
 		box_b = box_box || title_box.include?('bottom')
 		box_bar = title_box.include?('bar')
 
-		real_txt = TerminalPoint.fmt(@title_color, @txt)
-		real_txt = (TerminalPoint.fmt(@title_box_color, (box_dbl ? "║ " : '│ ')) + real_txt) if box_l
-		real_txt = (real_txt + TerminalPoint.fmt(@title_box_color, (box_dbl ? " ║" : ' │'))) if box_r
+		real_txt = @txt.dup
+		real_txt.prepend(DecoratedTextSegment.new(@title_box_color, (box_dbl ?  "║ " : '│ '))) if box_l
+		real_txt << DecoratedTextSegment.new(@title_box_color, (box_dbl ? " ║" : ' │')) if box_r
 
-		left_title_pad = " " * case @title_position
+		left_title_pos = case @title_position
 			when "center"
-				(COLS - display_width(real_txt))/2
+				(buf.width - real_txt.width)/2
 			when "left"
-				@pad_left
+				0
 			when "right"
-				COLS - @pad_right - display_width(real_txt)
+				buf.width - real_txt.width
 			when "content-center"
-				@pad_left + (max_content_width - display_width(real_txt))/2
+				(max_content_width - real_txt.width)/2
 			else
 				raise "unknown title.position: #{@title_position}"
 		end
-		below_title_pad = "\n" * @pad_title
+		ypos = 0
 		if box_bar
-			sides_color = invert_color(@title_box_color)
-			puts TerminalPoint.fmt(@title_box_color, "▄" * COLS)
-			print TerminalPoint.fmt(sides_color, left_title_pad)
-			print TerminalPoint.fmt(@title_color, @txt)
-			puts TerminalPoint.fmt(sides_color, " " * (COLS - left_title_pad.size - display_width(@txt)))
-			puts TerminalPoint.fmt(@title_box_color, "▀" * COLS)
+			buf.write(0, 0, DecoratedText.new(@title_box_color, "▄" * buf.width))
+			buf.write(0, 1, DecoratedText.new(@title_box_color, "█" * left_title_pos))
+			buf.write(left_title_pos, 1, real_txt)
+			buf.write(left_title_pos + real_txt.width, 1, "█" * (buf.width - left_title_pos - real_txt.width))
+			buf.write(0, 2, DecoratedText.new(@title_box_color, "▀" * buf.width))
+			ypos += 3
 		else
 			if box_t
-				top_line = ""
-				top_line << (box_dbl ? "╔═" : "┌─") if box_l
-				top_line << (box_dbl ? "═" : "─") * display_width(@txt)
-				top_line << (box_dbl ? "═╗" : "─┐") if box_r
-				puts left_title_pad + TerminalPoint.fmt(@title_box_color, top_line)
+				top_line = DecoratedText.new(@title_box_color, "")
+				top_line << DecoratedTextSegment.new(@title_box_color, (box_dbl ? "╔═" : "┌─")) if box_l
+				top_line << DecoratedTextSegment.new(@title_box_color, (box_dbl ? "═" : "─") * @txt.width)
+				top_line << DecoratedTextSegment.new(@title_box_color, (box_dbl ? "═╗" : "─┐")) if box_r
+				buf.write(left_title_pos, ypos, top_line)
+				ypos += 1
 			end
 
-			puts "#{left_title_pad}#{real_txt}"
+			buf.write(left_title_pos, ypos, real_txt)
+			ypos += 1
 
 			if box_b
-				bottom_line = ""
-				bottom_line << (box_dbl ? "╚═" : "└─") if box_l
-				bottom_line << (box_dbl ? "═" : "─") * display_width(@txt)
-				bottom_line << (box_dbl ? "═╝" : "─┘") if box_r
-				puts left_title_pad + TerminalPoint.fmt(@title_box_color, bottom_line)
+				bottom_line = DecoratedText.new(@title_box_color, "")
+				bottom_line << DecoratedTextSegment.new(@title_box_color, (box_dbl ? "╚═" : "└─")) if box_l
+				bottom_line << DecoratedTextSegment.new(@title_box_color, (box_dbl ? "═" : "─") * @txt.width)
+				bottom_line << DecoratedTextSegment.new(@title_box_color, (box_dbl ? "═╝" : "─┘")) if box_r
+				buf.write(left_title_pos, ypos, bottom_line)
+				ypos += 1
 			end
 		end
-		puts below_title_pad
+		ypos += @pad_title
 
-		1 + below_title_pad.size + (box_t ? 1 : 0) + (box_b ? 1 : 0) + (box_bar ? 2 : 0)
+		ypos
 	end
 end
 
@@ -379,7 +389,7 @@ class Pre < Entry
 	end
 end
 
-class Column
+class Column < Entry
 	def initialize(weight)
 		@entries = []
 		@weight = weight  # TODO
@@ -409,15 +419,16 @@ class Slide
 	end
 
 	def display
+		buffer = RenderBuffer.new(COLS, ROWS)
 		max_content_width = @entries.map{|s| s.width}.max
 
-		top_pad = "\n" * @pad_top
-		puts top_pad
-		lines = top_pad.size
+		ypos = @pad_top
 
-		lines += @entries.map { |e| e.display(max_content_width) }.sum
+		@entries.each do |e|
+			ypos += e.render(buffer.child(0, ypos, COLS, ROWS - ypos), max_content_width)
+		end
 
-		puts "\n" * (ROWS - lines)
+		buffer.display
 	end
 
 	def <<(ent)
