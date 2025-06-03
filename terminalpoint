@@ -373,9 +373,14 @@ class Pre < Entry
 		@txt.lines.map(&:size).max
 	end
 
-	def display(max_content_width)
-		puts @txt
-		puts
+	def min_width
+		width
+	end
+
+	def render(buf, max_content_width)
+		@txt.lines.each_with_index do |line, i|
+			buf.write(0, i, DecoratedText.new("", line))
+		end
 		@txt.lines.size + 1
 	end
 end
