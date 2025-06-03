@@ -295,14 +295,14 @@ class Table < Entry
 		arr = arr.map {|row|
 			if row == :header
 				is_header = true
-				row
+				nil
 			elsif is_header
 				is_header = false
-				row.map{|col| markdown('table.header.color', col)}
+				[true, row.map{|col| markdown('table.header.color', col)}]
 			else
-				row.map{|col| markdown('text.color', col)}
+				[false, row.map{|col| markdown('text.color', col)}]
 			end
-		}
+		}.compact
 
 		@arr = arr
 		@table_position = CONFIG['table.position']
@@ -311,28 +311,28 @@ class Table < Entry
 	end
 
 	def width
-		ncolumns = @arr.map {|row| row.size if row.is_a?(Array)}.compact.max
+		ncolumns = @arr.map {|_, row| row.size if row.is_a?(Array)}.compact.max
 		col_widths = (0...ncolumns).map do |col|
-			@arr.map {|row| row[col].width if row.is_a?(Array)}.compact.max
+			@arr.map {|_, row| row[col].width if row.is_a?(Array)}.compact.max
 		end
 		col_widths.sum + ncolumns*3 + 1
 	end
 
 	def min_width
-		ncolumns = @arr.map {|row| row.size if row.is_a?(Array)}.compact.max
+		ncolumns = @arr.map {|_, row| row.size if row.is_a?(Array)}.compact.max
 		min_widths = (0...ncolumns).map do |col|
-			@arr.map {|row| row[col].min_width if row.is_a?(Array)}.compact.max
+			@arr.map {|_, row| row[col].min_width if row.is_a?(Array)}.compact.max
 		end
 		min_widths.sum + ncolumns*3 + 1
 	end
 
 	def render(buf, max_content_width)
-		ncolumns = @arr.map {|row| row.size if row.is_a?(Array)}.compact.max
+		ncolumns = @arr.map {|_, row| row.size if row.is_a?(Array)}.compact.max
 		col_widths = (0...ncolumns).map do |col|
-			@arr.map {|row| row[col].width if row.is_a?(Array)}.compact.max
+			@arr.map {|_, row| row[col].width if row.is_a?(Array)}.compact.max
 		end
 		min_widths = (0...ncolumns).map do |col|
-			@arr.map {|row| row[col].min_width if row.is_a?(Array)}.compact.max
+			@arr.map {|_, row| row[col].min_width if row.is_a?(Array)}.compact.max
 		end
 		twidth = col_widths.sum + ncolumns*3 + 1
 
@@ -358,15 +358,9 @@ class Table < Entry
 				raise "unknown table.position: #{@table_position}"
 		end
 
-		is_header = false
 		buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╔" + ("═" * (twidth-2)) + "╗"))
 		ypos += 1
-		@arr.each do |row|
-			if row == :header
-				is_header = true
-				next
-			end
-
+		@arr.each_with_index do |(is_header, row), i|
 			cell_row = 0
 			more_cell_rows = true
 
@@ -396,12 +390,10 @@ class Table < Entry
 			if is_header
 				buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╠" + col_widths.map{|w| "═" * (w+2)}.join("╤") + "╣"))
 				ypos += 1
-			elsif row != @arr.last
+			elsif i != @arr.size - 1
 				buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╟" + col_widths.map{|w| "─" * (w+2)}.join("┼") + "╢"))
 				ypos += 1
 			end
-
-			is_header = false
 		end
 		buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╚" + col_widths.map{|w| "═" * (w+2)}.join("╧") + "╝"))
 		ypos + 2
