@@ -398,20 +398,8 @@ class Slide
 		puts "\n" * (ROWS - lines)
 	end
 
-	def title(s)
-		@entries << Title.new(s)
-	end
-
-	def bullet(*args)
-		@entries << Bullet.new(*args)
-	end
-
-	def table(t)
-		@entries << Table.new(t)
-	end
-
-	def pre(txt)
-		@entries << Pre.new(txt)
+	def <<(ent)
+		@entries << ent
 	end
 
 	def empty?
@@ -439,26 +427,26 @@ class TerminalPoint
 	# [DSL] add a title element to the slide
 	#   s: markdown or ANSI text to display
 	def title(s)
-		@current_slide.title(s)
+		@current_slide << Title.new(s)
 	end
 
 	# [DSL] add a bullet element to the slide
 	#   s: markdown or ANSI text to display
 	def bullet(*args)
-		@current_slide.bullet(*args)
+		@current_slide << Bullet.new(*args)
 	end
 
 	# [DSL] add a table element to the slide
 	#   t: an array of table rows.  Each row is an array of markdown or ANSI text for a cell.
 	#      A special row value :header indicates that the next row should be displayed as a header.
 	def table(t)
-		@current_slide.table(t)
+		@current_slide << Table.new(t)
 	end
 
 	# [DSL] add a fixed-format element to the slide
 	#   txt: text to be displayed verbatim, including newlines.  No markdown processing occurs.
 	def pre(txt)
-		@current_slide.pre(txt)
+		@current_slide << Pre.new(txt)
 	end
 
 	# [DSL] center a `pre` element on the slide
