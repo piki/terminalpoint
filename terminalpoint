@@ -161,6 +161,10 @@ class Title < Entry
 		@txt.width
 	end
 
+	def min_width
+		width
+	end
+
 	def render(buf, max_content_width)
 		title_box = @title_box.downcase.split
 		box_dbl = title_box.include?('double')
@@ -276,17 +280,39 @@ class Table < Entry
 			end
 		}
 
-		ncolumns = arr.map {|row| row.size if row.is_a?(Array)}.compact.max
+		@arr = arr
+		@table_position = CONFIG['table.position']
+		@table_header_color = TerminalPoint.color_to_codes(CONFIG['table.header.color'])
+		@table_color = TerminalPoint.color_to_codes(CONFIG['table.color'])
+	end
+
+	def width
+		ncolumns = @arr.map {|row| row.size if row.is_a?(Array)}.compact.max
 		col_widths = (0...ncolumns).map do |col|
-			arr.map {|row| row[col].width if row.is_a?(Array)}.compact.max
+			@arr.map {|row| row[col].width if row.is_a?(Array)}.compact.max
+		end
+		col_widths.sum + ncolumns*3 + 1
+	end
+
+	def min_width
+		ncolumns = @arr.map {|row| row.size if row.is_a?(Array)}.compact.max
+		min_widths = (0...ncolumns).map do |col|
+			@arr.map {|row| row[col].min_width if row.is_a?(Array)}.compact.max
+		end
+		min_widths.sum + ncolumns*3 + 1
+	end
+
+	def render(buf, max_content_width)
+		ncolumns = @arr.map {|row| row.size if row.is_a?(Array)}.compact.max
+		col_widths = (0...ncolumns).map do |col|
+			@arr.map {|row| row[col].width if row.is_a?(Array)}.compact.max
 		end
 		min_widths = (0...ncolumns).map do |col|
-			arr.map {|row| row[col].min_width if row.is_a?(Array)}.compact.max
+			@arr.map {|row| row[col].min_width if row.is_a?(Array)}.compact.max
 		end
 		twidth = col_widths.sum + ncolumns*3 + 1
 
-		# TODO: move this to render
-		while twidth >= COLS - CONFIG['pad.left'] - CONFIG['pad.right']
+		while twidth >= buf.width
 			col_widths = col_widths.zip(min_widths).map {|w, minw|
 				[w * 9 / 10, minw].max
 			}
@@ -295,35 +321,21 @@ class Table < Entry
 			twidth = new_twidth
 		end
 
-		@arr = arr
-		@twidth = twidth
-		@col_widths = col_widths
-
-		@table_position = CONFIG['table.position']
-		@table_header_color = TerminalPoint.color_to_codes(CONFIG['table.header.color'])
-		@table_color = TerminalPoint.color_to_codes(CONFIG['table.color'])
-	end
-
-	def width
-		@twidth
-	end
-
-	def render(buf, max_content_width)
 		ypos = 0
 
 		left_pad = case @table_position
 			when "left"
 				0
 			when "center"
-				(buf.width - @twidth)/2
+				(buf.width - twidth)/2
 			when "right"
-				buf.width - @twidth
+				buf.width - twidth
 			else
 				raise "unknown table.position: #{@table_position}"
 		end
 
 		is_header = false
-		buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╔" + ("═" * (@twidth-2)) + "╗"))
+		buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╔" + ("═" * (twidth-2)) + "╗"))
 		ypos += 1
 		@arr.each do |row|
 			if row == :header
@@ -338,7 +350,7 @@ class Table < Entry
 				more_cell_rows = false
 				buf.write(left_pad, ypos, DecoratedText.new(@table_color, "║"))
 				xpos = left_pad + 1
-				row.zip(@col_widths).each_with_index do |(cell, w), i|
+				row.zip(col_widths).each_with_index do |(cell, w), i|
 					xpos += buf.write(xpos, ypos, DecoratedText.new(@table_color, is_header ? " " : "│")) if i > 0
 					xpos += 1
 					# TODO: no longer have to write line-by-line
@@ -358,16 +370,16 @@ class Table < Entry
 			end
 
 			if is_header
-				buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╠" + @col_widths.map{|w| "═" * (w+2)}.join("╤") + "╣"))
+				buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╠" + col_widths.map{|w| "═" * (w+2)}.join("╤") + "╣"))
 				ypos += 1
 			elsif row != @arr.last
-				buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╟" + @col_widths.map{|w| "─" * (w+2)}.join("┼") + "╢"))
+				buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╟" + col_widths.map{|w| "─" * (w+2)}.join("┼") + "╢"))
 				ypos += 1
 			end
 
 			is_header = false
 		end
-		buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╚" + @col_widths.map{|w| "═" * (w+2)}.join("╧") + "╝"))
+		buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╚" + col_widths.map{|w| "═" * (w+2)}.join("╧") + "╝"))
 		ypos + 2
 	end
 end
@@ -426,7 +438,10 @@ class Slide
 
 	def display
 		buffer = RenderBuffer.new(COLS, ROWS)
-		max_content_width = @entries.map{|s| s.width}.max
+		max_content_width = [
+			@entries.map{|s| s.width}.max,
+			COLS - CONFIG['pad.left'] - CONFIG['pad.right']
+		].min
 
 		ypos = @pad_top
 
