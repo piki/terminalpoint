@@ -12,6 +12,7 @@ CONFIG = {
 	"title.box.color" => "plain",
 	"table.header.color" => "bold",
 	"table.position" => "center",  # or "left", or "right"
+	"table.color" => "plain",
 	"bullet.color" => "plain",
 	"text.color" => "plain",
 	"bullet.text" => "»",
@@ -78,6 +79,7 @@ class RenderBuffer
 		gap = x - line.width
 		line << DecoratedTextSegment.new("", " " * gap) if gap > 0
 		line.push_all(dtxt)
+		dtxt.width
 	end
 
 	def child(xofs, yofs, width, height)
@@ -132,9 +134,9 @@ class Entry
 		s
 	end
 
-	def markdown(plain_color, s)
+	def markdown(plain_color_key, s)
 		DecoratedText.from_markdown(
-			plain_color,
+			TerminalPoint.color_to_codes(CONFIG[plain_color_key]),
 			TerminalPoint.color_to_codes(CONFIG['code.color']),
 			s)
 	end
@@ -148,7 +150,7 @@ class Title < Entry
 		@pad_left = CONFIG['pad.left']
 		@pad_right = CONFIG['pad.right']
 		@pad_title = CONFIG['pad.title']
-		@txt = markdown(TerminalPoint.color_to_codes(CONFIG['title.color']), txt)
+		@txt = markdown('title.color', txt)
 	end
 
 	def own_padding?
@@ -232,7 +234,7 @@ class Bullet < Entry
 				raise "Invalid arguments to bullet"
 		end
 
-		@txt = markdown(TerminalPoint.color_to_codes(CONFIG['text.color']), txt)
+		@txt = markdown('text.color', txt)
 		@bullet_text = DecoratedText.new(TerminalPoint.color_to_codes(CONFIG['bullet.color']), CONFIG['bullet.text'])
 		@pad_indent = 4 * (indent - 1)
 	end
@@ -261,24 +263,30 @@ end
 
 class Table < Entry
 	def initialize(arr)
+		is_header = false
 		arr = arr.map {|row|
-			if row.is_a?(Array)
-				row.map{|col| mini_markdown(col)}
-			else
+			if row == :header
+				is_header = true
 				row
+			elsif is_header
+				is_header = false
+				row.map{|col| markdown('table.header.color', col)}
+			else
+				row.map{|col| markdown('text.color', col)}
 			end
 		}
 
 		ncolumns = arr.map {|row| row.size if row.is_a?(Array)}.compact.max
 		col_widths = (0...ncolumns).map do |col|
-			arr.map {|row| display_width(row[col]) if row.is_a?(Array)}.compact.max
+			arr.map {|row| row[col].width if row.is_a?(Array)}.compact.max
 		end
 		min_widths = (0...ncolumns).map do |col|
-			arr.map {|row| row[col].split(/\s+/).map {|word| display_width(word)}.max if row.is_a?(Array)}.compact.max
+			arr.map {|row| row[col].min_width if row.is_a?(Array)}.compact.max
 		end
 		twidth = col_widths.sum + ncolumns*3 + 1
 
-		while twidth >= COLS
+		# TODO: move this to render
+		while twidth >= COLS - CONFIG['pad.left'] - CONFIG['pad.right']
 			col_widths = col_widths.zip(min_widths).map {|w, minw|
 				[w * 9 / 10, minw].max
 			}
@@ -292,32 +300,31 @@ class Table < Entry
 		@col_widths = col_widths
 
 		@table_position = CONFIG['table.position']
-		@table_header_color = CONFIG['table.header.color']
-		@pad_left = CONFIG['pad.left']
-		@pad_right = CONFIG['pad.right']
+		@table_header_color = TerminalPoint.color_to_codes(CONFIG['table.header.color'])
+		@table_color = TerminalPoint.color_to_codes(CONFIG['table.color'])
 	end
 
 	def width
 		@twidth
 	end
 
-	def display(max_content_width)
-		lines = 0
+	def render(buf, max_content_width)
+		ypos = 0
 
-		left_pad = " " * case @table_position
+		left_pad = case @table_position
 			when "left"
-				@pad_left
+				0
 			when "center"
-				(COLS - @twidth)/2
+				(buf.width - @twidth)/2
 			when "right"
-				COLS - @pad_right - @twidth
+				buf.width - @twidth
 			else
 				raise "unknown table.position: #{@table_position}"
 		end
 
 		is_header = false
-		puts "#{left_pad}╔" + ("═" * (@twidth-2)) + "╗"
-		lines += 1
+		buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╔" + ("═" * (@twidth-2)) + "╗"))
+		ypos += 1
 		@arr.each do |row|
 			if row == :header
 				is_header = true
@@ -329,45 +336,39 @@ class Table < Entry
 
 			while more_cell_rows
 				more_cell_rows = false
-				print "#{left_pad}║"
+				buf.write(left_pad, ypos, DecoratedText.new(@table_color, "║"))
+				xpos = left_pad + 1
 				row.zip(@col_widths).each_with_index do |(cell, w), i|
-					print is_header ? " " : "│" if i > 0
-					print " "
-					cell_parts = wrap_text(cell, w)
+					xpos += buf.write(xpos, ypos, DecoratedText.new(@table_color, is_header ? " " : "│")) if i > 0
+					xpos += 1
+					# TODO: no longer have to write line-by-line
+					cell_parts = cell.wrap(w)
 					if cell_parts.size > cell_row
 						cell_part = cell_parts[cell_row]
+						raise "cell [#{cell_part.to_plain_text}] too wide: #{cell_part.width} > #{w}" unless cell_part.width <= w
 						more_cell_rows ||= cell_parts.size > cell_row + 1
-						if is_header
-							print TerminalPoint.fmt(@table_header_color, borrow_formatting(cell_part, cell_parts[...cell_row]))
-						else
-							print borrow_formatting(cell_part, cell_parts[...cell_row])
-						end
-						pad = w + 1 - display_width(cell_part)
-						print " " * pad
+						buf.write(xpos, ypos, cell_part)
 					else
-						print " " * (w + 1)
 					end
+					xpos += w + 1
 				end
-				puts "║"
-				lines += 1
+				buf.write(xpos, ypos, DecoratedText.new(@table_color, "║"))
+				ypos += 1
 				cell_row += 1
 			end
 
 			if is_header
-				puts "#{left_pad}╠" + @col_widths.map{|w| "═" * (w+2)}.join("╤") + "╣"
-				lines += 1
+				buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╠" + @col_widths.map{|w| "═" * (w+2)}.join("╤") + "╣"))
+				ypos += 1
 			elsif row != @arr.last
-				puts "#{left_pad}╟" + @col_widths.map{|w| "─" * (w+2)}.join("┼") + "╢"
-				lines += 1
+				buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╟" + @col_widths.map{|w| "─" * (w+2)}.join("┼") + "╢"))
+				ypos += 1
 			end
 
 			is_header = false
 		end
-		puts "#{left_pad}╚" + @col_widths.map{|w| "═" * (w+2)}.join("╧") + "╝"
-		puts
-		lines += 2
-
-		lines
+		buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╚" + @col_widths.map{|w| "═" * (w+2)}.join("╧") + "╝"))
+		ypos + 2
 	end
 end
 
