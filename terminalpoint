@@ -97,6 +97,10 @@ class RenderBuffer
 end
 
 class Entry
+	def own_padding?
+		false
+	end
+
 	def invert_color(col)
 		col.split(/\s+/).map {|c|
 			case c
@@ -141,11 +145,14 @@ class Title < Entry
 		@title_box = CONFIG['title.box']
 		@title_box_color = TerminalPoint.color_to_codes(CONFIG['title.box.color'])
 		@title_position = CONFIG['title.position']
-		@pad_left = CONFIG['pad.left'] # TODO
-		@pad_right = CONFIG['pad.right'] # TODO
+		@pad_left = CONFIG['pad.left']
+		@pad_right = CONFIG['pad.right']
 		@pad_title = CONFIG['pad.title']
 		@txt = markdown(TerminalPoint.color_to_codes(CONFIG['title.color']), txt)
-			
+	end
+
+	def own_padding?
+		true
 	end
 
 	def width
@@ -170,11 +177,11 @@ class Title < Entry
 			when "center"
 				(buf.width - real_txt.width)/2
 			when "left"
-				0
+				@pad_left
 			when "right"
-				buf.width - real_txt.width
+				buf.width - real_txt.width - @pad_right
 			when "content-center"
-				(max_content_width - real_txt.width)/2
+				@pad_left + (max_content_width - real_txt.width)/2
 			else
 				raise "unknown title.position: #{@title_position}"
 		end
@@ -412,6 +419,8 @@ class Slide
 		@current_column = nil
 
 		@pad_top = CONFIG['pad.top']
+		@pad_left = CONFIG['pad.left']
+		@pad_right = CONFIG['pad.right']
 	end
 
 	def display
@@ -421,7 +430,11 @@ class Slide
 		ypos = @pad_top
 
 		@entries.each do |e|
-			ypos += e.render(buffer.child(0, ypos, COLS, ROWS - ypos), max_content_width)
+			if e.own_padding?
+				ypos += e.render(buffer.child(0, ypos, COLS, ROWS - ypos), max_content_width)
+			else
+				ypos += e.render(buffer.child(@pad_left, ypos, COLS - @pad_left - @pad_right, ROWS - ypos), max_content_width)
+			end
 		end
 
 		buffer.display
