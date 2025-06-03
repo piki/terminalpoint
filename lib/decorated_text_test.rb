@@ -104,5 +104,17 @@ class DecoratedTextTest < Test::Unit::TestCase
 
 		result = DecoratedText.from_markdown("", "1;100", "Simple `backticks` for code")
 		assert_equal DecoratedText.new("", "Simple ", "1;100", "backticks", "", " for code"), result
+
+		result = DecoratedText.from_markdown("", "1;100", "Replace with `?`")
+		assert_equal DecoratedText.new("", "Replace with ", "1;100", "?"), result
+
+
+		result = DecoratedText.from_markdown("", "1;100", "Elide `VALUES (1,2),(3,4)` lists")
+		assert_equal DecoratedText.new("", "Elide ", "1;100", "VALUES (1,2),(3,4)", "", " lists"), result
+	end
+
+	def test_wrap
+		result = DecoratedText.new("", "This is a long line").wrap(8)
+		assert_equal [DecoratedText.new("", "This is"), DecoratedText.new("", "a long"), DecoratedText.new("", "line")], result
 	end
 end

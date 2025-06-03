@@ -13,6 +13,8 @@ end
 # Struct to contain several DecoratedTextSegments.  Any two adjacent
 # segments with identical codes will be combined into a single segment.
 class DecoratedText
+	attr_reader :segments
+
 	def initialize(*args)
 		@segments = []
 		while !args.empty?
@@ -74,7 +76,8 @@ class DecoratedText
 				ret << DecoratedTextSegment.new("", tok)
 			else
 				codes, txt = tok.split('m', 2)
-				codes.gsub!(/^0($|;)/, '')
+				codes.gsub!(/^0;/, '')
+				codes = '' if codes == "0"
 				ret << DecoratedTextSegment.new(codes, txt)
 			end
 		end
@@ -104,7 +107,7 @@ class DecoratedText
 	# Add a whole new DecoratedText to the end of the text
 	def push_all(dtxt)
 		dtxt.instance_variable_get(:@segments).each do |seg|
-			@segments << seg
+			self << seg
 		end
 	end
 
@@ -146,7 +149,12 @@ class DecoratedText
 			if line.nil?
 				line = word
 			elsif (line.width + 1 + word.width) <= max_length
-				line << DecoratedTextSegment.new("", " ")
+				code = if line.segments.last.codes == word.segments.first.codes
+					word.segments.first.codes
+				else
+					""
+				end
+				line << DecoratedTextSegment.new(code, " ")
 				line.push_all(word)
 			else
 				lines << line

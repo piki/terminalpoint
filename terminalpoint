@@ -22,7 +22,7 @@ CONFIG = {
 	"code.color" => "bold bg:dark-grey",
 }
 COLOR = {
-	"plain" => "0",
+	"plain" => "",
 	"bold" => "1",
 	"italic" => "3",
 	"underlined" => "4",
