@@ -100,7 +100,7 @@ class DecoratedText
 		if !@segments.empty? && @segments.last.codes == seg.codes
 			@segments.last.txt += seg.txt
 		else
-			@segments << seg
+			@segments << seg.dup
 		end
 	end
 
@@ -147,7 +147,7 @@ class DecoratedText
 
 		words.each do |word|
 			if line.nil?
-				line = word
+				line = word.dup
 			elsif (line.width + 1 + word.width) <= max_length
 				code = if line.segments.last.codes == word.segments.first.codes
 					word.segments.first.codes
@@ -155,10 +155,10 @@ class DecoratedText
 					""
 				end
 				line << DecoratedTextSegment.new(code, " ")
-				line.push_all(word)
+				line.push_all(word.dup)
 			else
 				lines << line
-				line = word
+				line = word.dup
 			end
 		end
 
