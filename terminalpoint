@@ -379,9 +379,31 @@ class Pre < Entry
 	end
 end
 
+class Column
+	def initialize(weight)
+		@entries = []
+		@weight = weight  # TODO
+	end
+
+	def <<(ent)
+		@entries << ent
+	end
+
+	def width
+		@entries.map { |e| e.width }.max
+	end
+
+	def display(max_content_width)
+		# TODO
+		max_content_width = @entries.map{|s| s.width}.max
+		@entries.map { |e| e.display(max_content_width) }.sum
+	end
+end
+
 class Slide
 	def initialize
 		@entries = []
+		@current_column = nil
 
 		@pad_top = CONFIG['pad.top']
 	end
@@ -399,7 +421,16 @@ class Slide
 	end
 
 	def <<(ent)
-		@entries << ent
+		if @current_column
+			@current_column << ent
+		else
+			@entries << ent
+		end
+	end
+
+	def add_column(weight)
+		@current_column = Column.new(weight)
+		@entries << @current_column
 	end
 
 	def empty?
@@ -447,6 +478,13 @@ class TerminalPoint
 	#   txt: text to be displayed verbatim, including newlines.  No markdown processing occurs.
 	def pre(txt)
 		@current_slide << Pre.new(txt)
+	end
+
+	# [DSL] add a column to the slide.  All following entries go in this column.
+	#   weight: relative width of the column.  If omitted, defaults to an
+	#   equal share.
+	def column(weight=nil)
+		@current_slide.add_column(weight)
 	end
 
 	# [DSL] center a `pre` element on the slide

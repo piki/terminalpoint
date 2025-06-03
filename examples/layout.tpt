@@ -4,6 +4,21 @@ slide
 	bullet "Including titles, bullets, spacing, and configuration"
 
 slide
+	title "This slide has columns"
+	column
+		bullet "Some descriptive text over here on the left"
+		bullet "Wrapped as needed"
+		bullet "And a table on the right"
+	column
+		table [
+			:header,
+			["Type", "Purpose"],
+			["Dining", "Eating"],
+			["Bedside", "Charging phones"],
+			["End", "Next to the couch"]
+		]
+
+slide
 	title "Default Layout"
 	bullet "This slide uses default positioning"
 	bullet "Title at top, standard padding"
