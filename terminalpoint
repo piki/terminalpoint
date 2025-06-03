@@ -56,7 +56,7 @@ class ChildRenderBuffer
 
 	def write(x, y, dtxt)
 		raise "y is out of bounds: #{y} >= #{height}" if y >= @height
-		raise "x is out of bounds: #{x} + #{dtxt.width} >= #{@width}" if x + dtxt.width >= @width
+		raise "x is out of bounds: #{x} + #{dtxt.width} > #{@width}" if x + dtxt.width > @width
 		
 		@block.call(x, y, dtxt)
 	end
@@ -72,7 +72,7 @@ class RenderBuffer
 
 	def write(x, y, dtxt)
 		raise "y is out of bounds: #{y} >= #{height}" if y >= @height
-		raise "x is out of bounds: #{x} + #{dtxt.width} >= #{@width}" if x + dtxt.width >= @width
+		raise "x is out of bounds: #{x} + #{dtxt.width} > #{@width}" if x + dtxt.width > @width
 		line = @lines[y]
 		raise "overwrite on line #{y}: #{x} < #{line.width}" if x < line.width
 		gap = x - line.width
@@ -139,11 +139,10 @@ end
 class Title < Entry
 	def initialize(txt)
 		@title_box = CONFIG['title.box']
-		@title_color = TerminalPoint.color_to_codes(CONFIG['title.color'])
 		@title_box_color = TerminalPoint.color_to_codes(CONFIG['title.box.color'])
 		@title_position = CONFIG['title.position']
-		@pad_left = CONFIG['pad.left']
-		@pad_right = CONFIG['pad.right']
+		@pad_left = CONFIG['pad.left'] # TODO
+		@pad_right = CONFIG['pad.right'] # TODO
 		@pad_title = CONFIG['pad.title']
 		@txt = markdown(TerminalPoint.color_to_codes(CONFIG['title.color']), txt)
 			
@@ -184,7 +183,7 @@ class Title < Entry
 			buf.write(0, 0, DecoratedText.new(@title_box_color, "▄" * buf.width))
 			buf.write(0, 1, DecoratedText.new(@title_box_color, "█" * left_title_pos))
 			buf.write(left_title_pos, 1, real_txt)
-			buf.write(left_title_pos + real_txt.width, 1, "█" * (buf.width - left_title_pos - real_txt.width))
+			buf.write(left_title_pos + real_txt.width, 1, DecoratedText.new(@title_box_color, "█" * (buf.width - left_title_pos - real_txt.width)))
 			buf.write(0, 2, DecoratedText.new(@title_box_color, "▀" * buf.width))
 			ypos += 3
 		else
@@ -226,36 +225,28 @@ class Bullet < Entry
 				raise "Invalid arguments to bullet"
 		end
 
-		@txt = mini_markdown(txt)
-		@bullet_text = TerminalPoint.fmt(CONFIG['bullet.color'], CONFIG['bullet.text'])
+		@txt = markdown(TerminalPoint.color_to_codes(CONFIG['text.color']), txt)
+		@bullet_text = DecoratedText.new(TerminalPoint.color_to_codes(CONFIG['bullet.color']), CONFIG['bullet.text'])
 		@pad_indent = 4 * (indent - 1)
-		@pad_left = CONFIG['pad.left'] + @pad_indent
-		@pad_right = CONFIG['pad.right']
-		@text_color = CONFIG['text.color']
-		@wrap_width = COLS - @pad_left - display_width(@bullet_text) - 1 - @pad_right
 	end
 
 	def width
-		display_width(@bullet_text) + 1 + [ @pad_indent + display_width(@txt), @wrap_width ].min
+		@bullet_text.width + 1 + @pad_indent + @txt.width
 	end
 
-	def display(max_content_width)
-		bullet_pad = " " * @pad_left
+	def min_width
+		@bullet_text.width + 1 + @pad_indent + @txt.min_width
+	end
 
-		fmt_txt = TerminalPoint.fmt(@text_color, @txt)
-		split = wrap_text(fmt_txt, @wrap_width)
+	def render(buf, max_content_width)
+		wrap_width = buf.width - @bullet_text.width - 1 - @pad_indent
+		split = @txt.wrap(wrap_width)
 		split.each_with_index do |part, j|
-			print bullet_pad
 			if j == 0
-				print @bullet_text
-			else
-				print " " * display_width(@bullet_text)
+				buf.write(@pad_indent, j, @bullet_text)
 			end
-			print " "
-			puts borrow_formatting(part, split[...j])
+			buf.write(@pad_indent + @bullet_text.width + 1, j, part)
 		end
-
-		puts
 
 		split.size + 1
 	end

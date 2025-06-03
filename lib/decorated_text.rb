@@ -16,8 +16,18 @@ class DecoratedText
 	def initialize(*args)
 		@segments = []
 		while !args.empty?
-			@segments << DecoratedTextSegment.new(args.shift, args.shift)
+			code = args.shift
+			txt = args.shift
+			@segments << DecoratedTextSegment.new(code, txt) if txt && !txt.empty?
 		end
+	end
+
+	def dup
+		ret = DecoratedText.new
+		@segments.each do |seg|
+			ret << seg.dup
+		end
+		ret
 	end
 
 	# Construct a DecoratedText applying any markdown decorations found in
@@ -31,16 +41,17 @@ class DecoratedText
 		# Backticks prevent other markdown formatting, so we split the string
 		# according to backticks and apply other markdown formatting only
 		# in the even-numbered segments and the last segment.
-		split = txt.split(/`/, -1).each_with_index.map{|tok, i|
+		split = txt.split(/`/, -1)
+		split = split.each_with_index.map{|tok, i|
 			if i % 2 == 0 || i == split.size - 1
-				tok.
+				DecoratedText.ansi(plain_codes, tok).
 					gsub(/~([^~]*)~/) { |txt| DecoratedText.ansi(9, txt[1..-2]) }.
 					gsub(/\*\*([^*]*)\*\*/) { |txt| DecoratedText.ansi(1, txt[2..-3]) }.
 					gsub(/__([^_]*)__/) { |txt| DecoratedText.ansi(1, txt[2..-3]) }.
 					gsub(/\*(\w[^*]*)\*/) { |txt| DecoratedText.ansi(3, txt[1..-2]) }.
 					gsub(/\b_([^_]*)_\b/) { |txt| DecoratedText.ansi(4, txt[1..-2]) }
 			else
-				DecoratedText.ansi(code, tok)
+				DecoratedText.ansi(backtick_codes, tok)
 			end
 		}
 
@@ -136,7 +147,7 @@ class DecoratedText
 				line = word
 			elsif (line.width + 1 + word.width) <= max_length
 				line << DecoratedTextSegment.new("", " ")
-				line << word
+				line.push_all(word)
 			else
 				lines << line
 				line = word

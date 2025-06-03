@@ -101,5 +101,8 @@ class DecoratedTextTest < Test::Unit::TestCase
 
 		result = DecoratedText.from_markdown("", "1;100", "hello _underlined_ and *italics* and ~strikethrough~ til plain again")
 		assert_equal DecoratedText.new("", "hello ", "4", "underlined", "", " and ", "3", "italics", "", " and ", "9", "strikethrough", "", " til plain again"), result
+
+		result = DecoratedText.from_markdown("", "1;100", "Simple `backticks` for code")
+		assert_equal DecoratedText.new("", "Simple ", "1;100", "backticks", "", " for code"), result
 	end
 end
