@@ -420,8 +420,9 @@ class Slide
 end
 
 class TerminalPoint
-	def initialize
+	def initialize(start_slide)
 		@current_slide = nil
+		@start_slide = start_slide  # TODO
 	end
 
 	# [DSL] begin a new slide
@@ -570,26 +571,42 @@ class TerminalPoint
 	end
 end
 
+def usage
+	puts "Usage:"
+	puts "  #{$0} [--slide N]"
+	puts "  #{$0} [--config] [--colors]"
+end
+
+start_slide = 1
+
 while ARGV.first =~ /^--/
-	quit_now = true
 	arg = ARGV.shift
 	case arg
 		when "--config"
 			CONFIG.each do |key, value|
 				puts "CONFIG[#{key.inspect}] = #{value.inspect}"
 			end
+			quit_now = true
 		when "--colors"
 			COLOR.each do |key, value|
 				puts "COLOR[#{key.inspect}] = #{value.inspect}"
 			end
+			quit_now = true
+		when "--slide"
+			start_slide = ARGV.shift.to_i
+		when "--help"
+			usage
+			quit_now = true
 		else
-			raise "Unknown argument: #{arg}"
+			puts "Unknown argument: #{arg}"
+			usage
+			quit_now = true
 	end
 end
 exit 0 if quit_now
 
 DEFAULTS = CONFIG.dup
 		
-tp = TerminalPoint.new
+tp = TerminalPoint.new(start_slide)
 tp.instance_eval(ARGF.read)
 tp.build
