@@ -3,7 +3,7 @@
 require 'io/console'
 require './lib/decorated_text'
 
-ROWS = IO.console.winsize[0] - 1   # leave one for the `less` status bar
+ROWS = IO.console.winsize[0] - (STDOUT.tty? ? 0 : 1) # leave one for the `less` status bar
 COLS = IO.console.winsize[1]
 CONFIG = {
 	"title.color" => "bold",
@@ -110,8 +110,12 @@ class RenderBuffer < BufferBase
 
 	def display
 		print ANSI_CLEAR_SCREEN + ANSI_GO_HOME + ANSI_HIDE_CURSOR if STDOUT.tty?
-		@lines.each do |line|
-			puts line.to_ansi
+		@lines.each_with_index do |line, i|
+			if i != @lines.size - 1
+				puts line.to_ansi
+			else
+				print line.to_ansi
+			end
 		end
 	end
 end
