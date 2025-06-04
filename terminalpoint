@@ -477,18 +477,18 @@ class Slide
 	def initialize
 		@entries = []
 		@current_column = nil
+	end
 
+	def display
 		@pad_top = CONFIG['pad.top']
 		@pad_left = CONFIG['pad.left']
 		@pad_right = CONFIG['pad.right']
 		@pad_column = CONFIG['pad.column']
-	end
 
-	def display
 		buffer = RenderBuffer.new(COLS, ROWS)
 		max_content_width = [
 			@entries.map{|s| s.width}.max,
-			COLS - CONFIG['pad.left'] - CONFIG['pad.right']
+			COLS - @pad_left - @pad_right
 		].min
 
 		ypos = @pad_top
