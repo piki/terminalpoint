@@ -23,6 +23,17 @@ slide
 	bullet "#{fmt 'pink', 'Pink text'} built-in soft color"
 
 slide
+	title "Fancy colors"
+	bullet rainbow("This line is a rainbow")
+	bullet gradient("#00ff00", "#0000ff", "This line is a gradient from green to blue")
+	bullet gradient("#0000ff", "#00ff00", "And back to green")
+	bullet gradient("#ff0000", "#ffaa00", "This line ") +
+		gradient("#ffaa00", "#ffff00", "is a gradient ") +
+		gradient("#ffff00", "#00ff00", "rainbow, with ") +
+		gradient("#00ff00", "#3333ff", "every character ") +
+		gradient("#3333ff", "#bb22bb", "a different color")
+
+slide
 	title "Combining Styles"
 	bullet "#{fmt 'bold red', 'Bold red text'} combines multiple styles"
 	bullet "#{fmt 'italic blue', 'Italic blue text'} for subtle info"
