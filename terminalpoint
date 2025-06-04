@@ -705,7 +705,7 @@ class TerminalPoint
 					when "\r", " ", INPUT_PGDOWN, INPUT_RIGHT, INPUT_DOWN
 						if current_slide != @slides.size - 1
 							current_slide = current_slide + 1
-							diamond_wipe(@slides[current_slide-1], @slides[current_slide], current_slide-1, current_slide)
+							sparkle_in(@slides[current_slide-1], @slides[current_slide], current_slide-1, current_slide)
 							#show(current_slide)
 						end
 					when "b", INPUT_PGUP, INPUT_LEFT, INPUT_UP

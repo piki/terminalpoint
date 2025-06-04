@@ -1,4 +1,5 @@
 require './lib/buffer.rb'
+require 'set'
 
 # New slide appears in place, from top to bottom
 def wipe_down(from, to, old_idx, new_idx)
@@ -83,6 +84,32 @@ def diamond_wipe(from, to, old_idx, new_idx)
 		end
 		STDIN.cooked { buf.display }
 		sleep 0.5/frame_count
+	end
+	show(new_idx)
+end
+
+# New slide sparkles in randomly, two characters at a time
+def sparkle_in(from, to, old_idx, new_idx)
+	from = from.render
+	to = to.render
+	order = (0...from.width/2).map {|x| (0...from.height).map {|y| [x,y]}}.flatten(1).shuffle
+	order = order.each_with_index.map{|pos, i| [pos, i*50/order.size]}.to_h
+	add_footer(from, old_idx)
+	add_footer(to, new_idx)
+	(1...50).each do |frame|
+		buf = RenderBuffer.new(from.width, from.height)
+		(0...from.height).each do |rownum|
+			(0...from.width/2).each do |colnum|
+				dtxt = if order[[colnum, rownum]] <= frame
+					to.take(colnum*2, rownum, 2)
+				else
+					from.take(colnum*2, rownum, 2)
+				end
+				buf.write(colnum*2, rownum, dtxt)
+			end
+		end
+		STDIN.cooked { buf.display }
+		sleep 0.5/50
 	end
 	show(new_idx)
 end
