@@ -493,7 +493,10 @@ class Column < Entry
 end
 
 class Slide
-	def initialize
+	attr_reader :slide_num
+
+	def initialize(slide_num)
+		@slide_num = slide_num
 		@entries = []
 		@current_column = nil
 	end
@@ -587,12 +590,13 @@ class TerminalPoint
 
 	# [DSL] begin a new slide
 	def slide
-		@slides << Slide.new
+		last_slide = @slides.empty? ? 0 : @slides.last.slide_num
+		@slides << Slide.new(last_slide + 1)
 	end
 
 	# [DSL] pause for input before displaying the next element
 	def build
-		@slides << @slides.last.dup
+		@slides << Marshal.load(Marshal.dump(@slides.last))
 	end
 
 	# [DSL] add a title element to the slide
@@ -782,7 +786,10 @@ class TerminalPoint
 	def show(current_slide)
 		STDIN.cooked {
 			buf = @slides[current_slide].render
-			footer = "#{current_slide+1} / #{@slides.size}"
+			slide_num = @slides[current_slide].slide_num
+			slide_count = @slides.last.slide_num
+
+			footer = "#{slide_num} / #{slide_count}"
 			buf.write(buf.width - footer.size - 1, buf.height - 1,
 				DecoratedText.new(TerminalPoint.color_to_codes(CONFIG['footer.color']), footer))
 			buf.display
