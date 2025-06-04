@@ -48,7 +48,7 @@ class RenderBuffer < BufferBase
 	def display
 		print ANSI_CLEAR_SCREEN + ANSI_GO_HOME + ANSI_HIDE_CURSOR if STDOUT.tty?
 		@lines.each_with_index do |line, i|
-			if i != @lines.size - 1
+			if i != @lines.size - 1 || !STDOUT.tty?
 				puts line.to_ansi
 			else
 				print line.to_ansi
