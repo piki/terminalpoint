@@ -637,16 +637,28 @@ class TerminalPoint
 		s.chars.each_with_index.map{|c, i| fmt(colors[i % colors.size], c)}.join
 	end
 
-	def gradient(rgb1, rgb2, s)
-		rgb1 = [rgb1[1..2].hex, rgb1[3..4].hex, rgb1[5..6].hex]
-		rgb2 = [rgb2[1..2].hex, rgb2[3..4].hex, rgb2[5..6].hex]
-		s.chars.each_with_index.map{|c, i|
-			rgb = [
-				rgb1[0] + (rgb2[0] - rgb1[0]) * i / (s.size - 1),
-				rgb1[1] + (rgb2[1] - rgb1[1]) * i / (s.size - 1),
-				rgb1[2] + (rgb2[2] - rgb1[2]) * i / (s.size - 1),
-			]
-			fmt("#%02x%02x%02x" % rgb, c)
+	def gradient(*args)
+		raise "Invalid arguments" unless args.size >= 3 && args.last.is_a?(String)
+		rgb = []
+		while args.size > 1
+			col = args.shift
+			raise "Gradient arguments must be '#rrggbb' hex codes" unless col =~ /^#[0-9a-fA-F]{6}$/
+			rgb << [col[1..2].hex, col[3..4].hex, col[5..6].hex]
+		end
+		args[0].chars.each_with_index.map{|c, i|
+			f = (rgb.size - 1).to_f * i / (args[0].size - 1)
+			i = f.to_i
+			f = f - i
+			shade = if i == rgb.size - 1
+				rgb.last
+			else
+				[
+					rgb[i][0] + (rgb[i+1][0] - rgb[i][0]) * f,
+					rgb[i][1] + (rgb[i+1][1] - rgb[i][1]) * f,
+					rgb[i][2] + (rgb[i+1][2] - rgb[i][2]) * f,
+				]
+			end
+			fmt("#%02x%02x%02x" % shade, c)
 		}.join
 	end
 

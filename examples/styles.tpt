@@ -27,11 +27,7 @@ slide
 	bullet rainbow("This line is a rainbow")
 	bullet gradient("#00ff00", "#0000ff", "This line is a gradient from green to blue")
 	bullet gradient("#0000ff", "#00ff00", "And back to green")
-	bullet gradient("#ff0000", "#ffaa00", "This line ") +
-		gradient("#ffaa00", "#ffff00", "is a gradient ") +
-		gradient("#ffff00", "#00ff00", "rainbow, with ") +
-		gradient("#00ff00", "#3333ff", "every character ") +
-		gradient("#3333ff", "#bb22bb", "a different color")
+	bullet gradient("#ff0000", "#ffaa00", "#ffff00", "#00ff00", "#3333ff", "#bb22bb", "This line is a gradient rainbow, with every character a different color")
 
 slide
 	title "Combining Styles"
