@@ -15,6 +15,7 @@ CONFIG = {
 	"table.color" => "plain",
 	"bullet.color" => "plain",
 	"text.color" => "plain",
+	"footer.color" => "plain",
 	"bullet.text" => "»",
 	"pad.top" => 2,
 	"pad.left" => 3,
@@ -47,6 +48,19 @@ COLOR = {
 	"orange" => "38;5;202",
 	"purple" => "38;5;91",
 }
+ANSI_SHOW_CURSOR = "\e[?25h"
+ANSI_HIDE_CURSOR = "\e[?25l" 
+ANSI_CLEAR_SCREEN = "\e[2J"
+ANSI_GO_HOME = "\e[H"
+INPUT_PGUP = "\e[5~"
+INPUT_PGDOWN = "\e[6~"
+INPUT_LEFT = "\e[D"
+INPUT_RIGHT = "\e[C"
+INPUT_UP = "\e[A"
+INPUT_DOWN = "\e[B"
+INPUT_CTRL_L = "\f"
+INPUT_HOME = "\e[H"
+INPUT_END = "\e[F"
 
 class BufferBase
 	def child(xofs, yofs, width, height)
@@ -95,6 +109,7 @@ class RenderBuffer < BufferBase
 	end
 
 	def display
+		print ANSI_CLEAR_SCREEN + ANSI_GO_HOME + ANSI_HIDE_CURSOR if STDOUT.tty?
 		@lines.each do |line|
 			puts line.to_ansi
 		end
@@ -479,7 +494,7 @@ class Slide
 		@current_column = nil
 	end
 
-	def display
+	def render
 		@pad_top = CONFIG['pad.top']
 		@pad_left = CONFIG['pad.left']
 		@pad_right = CONFIG['pad.right']
@@ -514,7 +529,7 @@ class Slide
 			ypos += display_columns(buffer, col_set)
 		end
 
-		buffer.display
+		buffer
 	end
 
 	def display_columns(buffer, col_set)
@@ -562,63 +577,61 @@ class Slide
 end
 
 class TerminalPoint
-	def initialize(start_slide)
-		@current_slide = nil
-		@start_slide = start_slide  # TODO
+	def initialize
+		@slides = []
 	end
 
 	# [DSL] begin a new slide
 	def slide
-		@current_slide.display if @current_slide
-		@current_slide = Slide.new
+		@slides << Slide.new
 	end
 
 	# [DSL] pause for input before displaying the next element
 	def build
-		@current_slide.display if @current_slide
+		@slides << @slides.last.dup
 	end
 
 	# [DSL] add a title element to the slide
 	#   s: markdown or ANSI text to display
 	def title(s)
-		@current_slide << Title.new(s)
+		@slides.last << Title.new(s)
 	end
 
 	# [DSL] add a bullet element to the slide
 	#   s: markdown or ANSI text to display
 	def bullet(*args)
-		@current_slide << Bullet.new(*args)
+		@slides.last << Bullet.new(*args)
 	end
 
 	# [DSL] add a table element to the slide
 	#   t: an array of table rows.  Each row is an array of markdown or ANSI text for a cell.
 	#      A special row value :header indicates that the next row should be displayed as a header.
 	def table(t)
-		@current_slide << Table.new(t)
+		@slides.last << Table.new(t)
 	end
 
 	# [DSL] add a fixed-format element to the slide
 	#   txt: text to be displayed verbatim, including newlines.  No markdown processing occurs.
 	def pre(txt)
-		@current_slide << Pre.new(txt)
+		@slides.last << Pre.new(txt)
 	end
 
 	# [DSL] add a column to the slide.  All following entries go in this column.
 	#   weight: relative width of the column.  If omitted, defaults to an
 	#   equal share.
 	def column(weight=nil)
-		@current_slide.add_column(weight)
+		@slides.last.add_column(weight)
 	end
 
 	def end_columns
-		@current_slide.end_columns
+		@slides.last.end_columns
 	end
 
 	# [DSL] center a `pre` element on the slide
 	# Usage:
 	#   pre center 'something'
 	def center(entry)
-		@current_slide.wrap_last { |x| Center.new(x) }
+		@slides.last.wrap_last { |x| Center.new(x) }
 	end
 
 	# [DSL] change the value of a configuration key
@@ -719,6 +732,58 @@ class TerminalPoint
 		sfix = s.gsub("\x1b[0m", "\x1b[0;#{codes}m")
 		"\x1b[0;#{codes}m#{sfix}\x1b[0m"
 	end
+
+	def play(start_slide)
+		if !STDOUT.tty?
+			@slides[start_slide..].each do |slide|
+				slide.render.display
+			end
+			return
+		end
+
+		current_slide = start_slide
+		show(current_slide)
+		STDIN.raw do |stdin|
+			s = ""
+			loop do
+				c = stdin.getc
+				break if c.nil?
+				s += c
+				case s
+					when "\r", " ", INPUT_PGDOWN, INPUT_RIGHT, INPUT_DOWN
+						current_slide = [current_slide + 1, @slides.size - 1].min
+						show(current_slide)
+					when "b", INPUT_PGUP, INPUT_LEFT, INPUT_UP
+						current_slide = [current_slide - 1, 0].max
+						show(current_slide)
+					when INPUT_CTRL_L
+						show(current_slide)
+					when "g", INPUT_HOME
+						current_slide = 0
+						show(current_slide)
+					when "G", INPUT_END
+						current_slide = @slides.size - 1
+						show(current_slide)
+					when "q", "\e\e"
+						break
+					when "\e", "\e[", "\e[5", "\e[6"
+						next
+				end
+				s = ""
+			end
+		end
+		puts ANSI_SHOW_CURSOR;
+	end
+
+	def show(current_slide)
+		STDIN.cooked {
+			buf = @slides[current_slide].render
+			footer = "#{current_slide+1} / #{@slides.size}"
+			buf.write(buf.width - footer.size - 1, buf.height - 1,
+				DecoratedText.new(TerminalPoint.color_to_codes(CONFIG['footer.color']), footer))
+			buf.display
+		}
+	end
 end
 
 def usage
@@ -728,8 +793,9 @@ def usage
 end
 
 start_slide = 1
+filename = "-"
 
-while ARGV.first =~ /^--/
+while !ARGV.empty?
 	arg = ARGV.shift
 	case arg
 		when "--config"
@@ -748,15 +814,19 @@ while ARGV.first =~ /^--/
 			usage
 			quit_now = true
 		else
-			puts "Unknown argument: #{arg}"
-			usage
-			quit_now = true
+			if arg !~ /^--/
+				filename = arg
+			else
+				puts "Unknown argument: #{arg}"
+				usage
+				quit_now = true
+			end
 	end
 end
 exit 0 if quit_now
 
 DEFAULTS = CONFIG.dup
 		
-tp = TerminalPoint.new(start_slide)
-tp.instance_eval(ARGF.read)
-tp.build
+tp = TerminalPoint.new
+tp.instance_eval(File.read(filename))
+tp.play(start_slide-1)
