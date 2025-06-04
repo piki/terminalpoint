@@ -2,6 +2,8 @@
 
 require 'io/console'
 require './lib/decorated_text'
+require './lib/buffer'
+require './lib/animations'
 
 ROWS = IO.console.winsize[0] - (STDOUT.tty? ? 0 : 1) # leave one for the `less` status bar
 COLS = IO.console.winsize[1]
@@ -61,64 +63,6 @@ INPUT_DOWN = "\e[B"
 INPUT_CTRL_L = "\f"
 INPUT_HOME = "\e[H"
 INPUT_END = "\e[F"
-
-class BufferBase
-	def child(xofs, yofs, width, height)
-		raise "child is too wide: #{xofs} + #{width} > #{@width}" if xofs + width > @width
-		raise "child is too tall: #{yofs} + #{height} > #{@height}" if yofs + height > @height
-
-		ChildRenderBuffer.new(width, height) do |x, y, dtxt|
-			self.write(xofs + x, yofs + y, dtxt)
-		end
-	end
-end
-
-class ChildRenderBuffer < BufferBase
-	attr_reader :width, :height
-	def initialize(width, height, &block)
-		@width = width
-		@height = height
-		@block = block
-	end
-
-	def write(x, y, dtxt)
-		raise "y is out of bounds: #{y} >= #{height}" if y >= @height
-		raise "x is out of bounds: #{x} + #{dtxt.width} > #{@width}" if x + dtxt.width > @width
-		
-		@block.call(x, y, dtxt)
-	end
-end
-
-class RenderBuffer < BufferBase
-	attr_reader :width, :height
-	def initialize(width, height)
-		@width = width
-		@height = height
-		@lines = (0...@height).map{ DecoratedText.new }
-	end
-
-	def write(x, y, dtxt)
-		raise "y is out of bounds: #{y} >= #{height}" if y >= @height
-		raise "x is out of bounds: #{x} + #{dtxt.width} > #{@width}" if x + dtxt.width > @width
-		line = @lines[y]
-		raise "overwrite on line #{y}: #{x} < #{line.width}" if x < line.width
-		gap = x - line.width
-		line << DecoratedTextSegment.new("", " " * gap) if gap > 0
-		line.push_all(dtxt)
-		dtxt.width
-	end
-
-	def display
-		print ANSI_CLEAR_SCREEN + ANSI_GO_HOME + ANSI_HIDE_CURSOR if STDOUT.tty?
-		@lines.each_with_index do |line, i|
-			if i != @lines.size - 1
-				puts line.to_ansi
-			else
-				print line.to_ansi
-			end
-		end
-	end
-end
 
 class Entry
 	def own_padding?
@@ -455,7 +399,7 @@ class Pre < Entry
 
 	def render(buf, max_content_width)
 		@txt.lines.each_with_index do |line, i|
-			buf.write(0, i, DecoratedText.new("", line))
+			buf.write(0, i, DecoratedText.new("", line.chomp))
 		end
 		@txt.lines.size + 1
 	end
@@ -759,11 +703,16 @@ class TerminalPoint
 				s += c
 				case s
 					when "\r", " ", INPUT_PGDOWN, INPUT_RIGHT, INPUT_DOWN
-						current_slide = [current_slide + 1, @slides.size - 1].min
-						show(current_slide)
+						if current_slide != @slides.size - 1
+							current_slide = current_slide + 1
+							diamond_wipe(@slides[current_slide-1], @slides[current_slide], current_slide-1, current_slide)
+							#show(current_slide)
+						end
 					when "b", INPUT_PGUP, INPUT_LEFT, INPUT_UP
-						current_slide = [current_slide - 1, 0].max
-						show(current_slide)
+						if current_slide > 0
+							current_slide = current_slide - 1
+							show(current_slide)
+						end
 					when INPUT_CTRL_L
 						show(current_slide)
 					when "g", INPUT_HOME
@@ -783,17 +732,18 @@ class TerminalPoint
 		puts ANSI_SHOW_CURSOR;
 	end
 
-	def show(current_slide)
-		STDIN.cooked {
-			buf = @slides[current_slide].render
-			slide_num = @slides[current_slide].slide_num
-			slide_count = @slides.last.slide_num
-
+	def add_footer(buf, current_slide)
+		slide_num = @slides[current_slide].slide_num
+		slide_count = @slides.last.slide_num
 			footer = "#{slide_num} / #{slide_count}"
 			buf.write(buf.width - footer.size - 1, buf.height - 1,
 				DecoratedText.new(TerminalPoint.color_to_codes(CONFIG['footer.color']), footer))
-			buf.display
-		}
+	end
+
+	def show(current_slide)
+		buf = @slides[current_slide].render
+		add_footer(buf, current_slide)
+		STDIN.cooked { buf.display }
 	end
 end
 
