@@ -445,12 +445,14 @@ class Slide
 		@current_column = nil
 	end
 
-	def render
+	def finalize
 		@pad_top = CONFIG['pad.top']
 		@pad_left = CONFIG['pad.left']
 		@pad_right = CONFIG['pad.right']
 		@pad_column = CONFIG['pad.column']
+	end
 
+	def render
 		buffer = RenderBuffer.new(COLS, ROWS)
 		max_content_width = [
 			@entries.map{|s| s.width}.max,
@@ -534,6 +536,7 @@ class TerminalPoint
 
 	# [DSL] begin a new slide
 	def slide
+		@slides.last&.finalize
 		last_slide = @slides.empty? ? 0 : @slides.last.slide_num
 		@slides << Slide.new(last_slide + 1)
 	end
@@ -686,6 +689,8 @@ class TerminalPoint
 	end
 
 	def play(start_slide)
+		@slides.last&.finalize
+
 		if !STDOUT.tty?
 			@slides[start_slide..].each do |slide|
 				slide.render.display
