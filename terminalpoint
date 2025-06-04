@@ -7,6 +7,7 @@ require './lib/animations'
 
 ROWS = IO.console.winsize[0] - (STDOUT.tty? ? 0 : 1) # leave one for the `less` status bar
 COLS = IO.console.winsize[1]
+
 CONFIG = {
 	"title.color" => "bold",
 	"title.position" => "center",  # or "left", or "right", or "content-center"
@@ -25,7 +26,10 @@ CONFIG = {
 	"pad.title" => 2,
 	"pad.column" => 3,
 	"code.color" => "bold bg:dark-grey",
+	"transition" => "slide_left",
+	"transition.speed" => 0.3,
 }
+
 COLOR = {
 	"plain" => "",
 	"bold" => "1",
@@ -50,6 +54,7 @@ COLOR = {
 	"orange" => "38;5;202",
 	"purple" => "38;5;91",
 }
+
 ANSI_SHOW_CURSOR = "\e[?25h"
 ANSI_HIDE_CURSOR = "\e[?25l" 
 ANSI_CLEAR_SCREEN = "\e[2J"
@@ -710,8 +715,11 @@ class TerminalPoint
 					when "\r", " ", INPUT_PGDOWN, INPUT_RIGHT, INPUT_DOWN
 						if current_slide != @slides.size - 1
 							current_slide = current_slide + 1
-							sparkle_in(@slides[current_slide-1], @slides[current_slide], current_slide-1, current_slide)
-							#show(current_slide)
+							if !CONFIG['transition'].empty?
+								send(CONFIG['transition'], @slides[current_slide-1], @slides[current_slide], current_slide-1, current_slide)
+							else
+								show(current_slide)
+							end
 						end
 					when "b", INPUT_PGUP, INPUT_LEFT, INPUT_UP
 						if current_slide > 0

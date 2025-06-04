@@ -13,7 +13,7 @@ def wipe_down(from, to, old_idx, new_idx)
 		end
 		add_footer(buf, old_idx)
 		STDIN.cooked { buf.display }
-		sleep 0.5/from.height
+		sleep CONFIG['transition.speed']/from.height
 	end
 	show(new_idx)
 end
@@ -34,7 +34,7 @@ def slide_down(from, to, old_idx, new_idx)
 		end
 		add_footer(buf, old_idx)
 		STDIN.cooked { buf.display }
-		sleep 0.5/from.height
+		sleep CONFIG['transition.speed']/from.height
 	end
 	show(new_idx)
 end
@@ -53,7 +53,7 @@ def slide_left(from, to, old_idx, new_idx)
 			buf.write(from.width-frame, rownum, dtxt2)
 		end
 		STDIN.cooked { buf.display }
-		sleep 0.5/from.width
+		sleep CONFIG['transition.speed']/from.width
 	end
 	show(new_idx)
 end
@@ -83,7 +83,7 @@ def diamond_wipe(from, to, old_idx, new_idx)
 			end
 		end
 		STDIN.cooked { buf.display }
-		sleep 0.5/frame_count
+		sleep CONFIG['transition.speed']/frame_count
 	end
 	show(new_idx)
 end
@@ -109,7 +109,7 @@ def sparkle_in(from, to, old_idx, new_idx)
 			end
 		end
 		STDIN.cooked { buf.display }
-		sleep 0.5/50
+		sleep CONFIG['transition.speed']/50
 	end
 	show(new_idx)
 end
