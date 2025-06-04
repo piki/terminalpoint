@@ -88,7 +88,7 @@ class DecoratedText
 		@segments.map {|seg| seg.to_ansi}.join
 	end
 
-	def to_plain_text
+	def as_plain_text
 		@segments.map {|seg| seg.txt}.join
 	end
 
@@ -128,7 +128,7 @@ class DecoratedText
 	# Return the minimum display width of the text, i.e., if every word
 	# is wrapped.
 	def min_width
-		to_plain_text.split(/\s+/).map(&:length).max
+		as_plain_text.split(/\s+/).map(&:length).max
 	end
 
 	# Return the maximum display width of the text, with no wrapping

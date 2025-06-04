@@ -358,45 +358,66 @@ class Table < Entry
 				raise "unknown table.position: #{@table_position}"
 		end
 
-		buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╔" + ("═" * (twidth-2)) + "╗"))
-		ypos += 1
-		@arr.each_with_index do |(is_header, row), i|
-			cell_row = 0
-			more_cell_rows = true
-
-			while more_cell_rows
-				more_cell_rows = false
-				buf.write(left_pad, ypos, DecoratedText.new(@table_color, "║"))
-				xpos = left_pad + 1
-				row.zip(col_widths).each_with_index do |(cell, w), i|
-					xpos += buf.write(xpos, ypos, DecoratedText.new(@table_color, is_header ? " " : "│")) if i > 0
-					xpos += 1
-					# TODO: no longer have to write line-by-line
-					cell_parts = cell.wrap(w)
-					if cell_parts.size > cell_row
-						cell_part = cell_parts[cell_row]
-						raise "cell [#{cell_part.to_plain_text}] too wide: #{cell_part.width} > #{w}" unless cell_part.width <= w
-						more_cell_rows ||= cell_parts.size > cell_row + 1
-						buf.write(xpos, ypos, cell_part)
-					else
-					end
-					xpos += w + 1
-				end
-				buf.write(xpos, ypos, DecoratedText.new(@table_color, "║"))
-				ypos += 1
-				cell_row += 1
-			end
-
-			if is_header
-				buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╠" + col_widths.map{|w| "═" * (w+2)}.join("╤") + "╣"))
-				ypos += 1
-			elsif i != @arr.size - 1
-				buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╟" + col_widths.map{|w| "─" * (w+2)}.join("┼") + "╢"))
-				ypos += 1
-			end
+		if @arr.first.first
+			buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╔" + ("═" * (twidth-2)) + "╗"))
+		else
+			buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╔" + col_widths.map{|w| "═" * (w+2)}.join("╤") + "╗"))
 		end
-		buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╚" + col_widths.map{|w| "═" * (w+2)}.join("╧") + "╝"))
-		ypos + 2
+		ypos += 1
+		@arr.each_with_index do |(is_header, row), rownum|
+			lines_this_row = row.zip(col_widths).map { |cell, w| cell.wrap(w).size }.max
+
+			# draw the left-edge vertical line at the start of the row
+			(0...lines_this_row).each do |rowline|
+				buf.write(left_pad, ypos+rowline, DecoratedText.new(@table_color, "║"))
+			end
+
+			# write row contents
+			row.each_with_index.map do |cell, colnum|
+				xpos = left_pad + col_widths[0...colnum].sum + colnum*3
+				# draw the dividing vertical line to the left of the row
+				if colnum > 0 && !is_header
+					(0...lines_this_row).each do |rowline|
+						buf.write(xpos, ypos+rowline, DecoratedText.new(@table_color, "│"))
+					end
+				end
+				xpos += 2
+
+				w = col_widths[colnum]
+				cell.wrap(w).each_with_index do |cell_part, rowline|
+					raise "cell [#{cell_part.as_plain_text}] too wide: #{cell_part.width} > #{w}" unless cell_part.width <= w
+					buf.write(xpos, ypos+rowline, cell_part)
+				end
+			end
+
+			# draw the right-edge vertical line at the end of the row
+			xpos = left_pad + col_widths.sum + ncolumns*3
+			(0...lines_this_row).each do |rowline|
+				buf.write(xpos, ypos+rowline, DecoratedText.new(@table_color, "║"))
+			end
+
+			ypos += lines_this_row
+
+			is_last = rownum + 1 == @arr.size
+			next_is_header = !is_last && @arr[rownum+1][0]
+			l, h, d, r = if is_header && is_last
+				["╚", "═", "═", "╝"]
+			elsif is_header && next_is_header
+				["╠", "═", "═", "╣"]
+			elsif is_header # but the next isn't
+				["╠", "═", "╤", "╣"]
+			elsif next_is_header # but this one isn't
+				["╠", "═", "╧", "╣"]
+			elsif is_last
+				["╚", "═", "╧", "╝"]
+			else
+				["╟", "─", "┼", "╢"]
+			end
+
+			buf.write(left_pad, ypos, DecoratedText.new(@table_color, l + col_widths.map{|w| h * (w+2)}.join(d) + r))
+			ypos += 1
+		end
+		ypos + 1
 	end
 end
 

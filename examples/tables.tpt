@@ -14,6 +14,8 @@ slide
 	]
 
 slide
+	config 'table.color', 'cyan'
+	config 'table.header.color', 'bright-green'
 	title "Product Comparison"
 	table [
 		:header,
@@ -25,6 +27,7 @@ slide
 	]
 
 slide
+	config :default
 	title "Financial Data"
 	table [
 		:header,
@@ -33,6 +36,48 @@ slide
 		["Q2 2024", "$150K", "$110K", "#{fmt 'green', '$40K'}"],
 		["Q3 2024", "$175K", "$185K", "#{fmt 'red', '($10K)'}"],
 		["Q4 2024", "$200K", "$140K", "#{fmt 'green', '$60K'}"]
+	]
+
+slide
+	title "No header in this table"
+	table [
+		["1", "1", "1"],
+		["2", "4", "8"],
+		["3", "9", "27"]
+	]
+
+slide
+	title "Double header in this table"
+	table [
+		:header,
+		["Unit", "Square", "Cube"],
+		:header,
+		["N", "N^2", "N^3"],
+		["1", "1", "1"],
+		["2", "4", "8"],
+		["3", "9", "27"]
+	]
+
+slide
+	title "Mid header in this table"
+	table [
+		:header,
+		["Unit", "Square", "Cube"],
+		["1", "1", "1"],
+		:header,
+		["Math", "is", "neat"],
+		["2", "4", "8"],
+		["3", "9", "27"],
+	]
+
+slide
+	title "Is it still a header if it's at the bottom?"
+	table [
+		["1", "1", "1"],
+		["2", "4", "8"],
+		["3", "9", "27"],
+		:header,
+		["Unit", "Square", "Cube"],
 	]
 
 slide
