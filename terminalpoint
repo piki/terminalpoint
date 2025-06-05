@@ -266,9 +266,9 @@ class Table < Entry
 				nil
 			elsif is_header
 				is_header = false
-				[true, row.map{|col| markdown('table.header.color', col)}]
+				[true, row.map{|col| markdown('table.header.color', col.to_s)}]
 			else
-				[false, row.map{|col| markdown('text.color', col)}]
+				[false, row.map{|col| markdown('text.color', col.to_s)}]
 			end
 		}.compact
 
