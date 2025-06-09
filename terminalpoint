@@ -641,10 +641,9 @@ class TerminalPoint
 		s.chars.each_with_index.map{|c, i| fmt(colors[i % colors.size], c)}.join
 	end
 
-	def include(filename)
-		self.instance_eval(File.read(filename))
-	end
-
+	# [DSL] decorate the text with a gradient of two or more colors
+	# Example:
+	#   gradient('#ff0000', '#ffff00', '#0000ff', "Red to yellow to blue")
 	def gradient(*args)
 		raise "Invalid arguments" unless args.size >= 3 && args.last.is_a?(String)
 		rgb = []
@@ -668,6 +667,11 @@ class TerminalPoint
 			end
 			fmt("#%02x%02x%02x" % shade, c)
 		}.join
+	end
+
+	# [DSL] read another file inline with this one, like a template or a theme
+	def include(filename)
+		self.instance_eval(File.read(filename))
 	end
 
 	def empty?
