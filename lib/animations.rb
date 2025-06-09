@@ -1,4 +1,4 @@
-require './lib/buffer.rb'
+require File.join(File.dirname(__FILE__), 'buffer.rb')
 require 'set'
 
 # New slide appears in place, from top to bottom

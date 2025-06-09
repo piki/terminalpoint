@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 
 require 'io/console'
-require './lib/decorated_text'
-require './lib/buffer'
-require './lib/animations'
+require File.join(File.dirname(__FILE__), 'lib', 'decorated_text')
+require File.join(File.dirname(__FILE__), 'lib', 'buffer')
+require File.join(File.dirname(__FILE__), 'lib', 'animations')
 
 ROWS = IO.console.winsize[0]
 COLS = IO.console.winsize[1]
