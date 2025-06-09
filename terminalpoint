@@ -637,6 +637,10 @@ class TerminalPoint
 		s.chars.each_with_index.map{|c, i| fmt(colors[i % colors.size], c)}.join
 	end
 
+	def include(filename)
+		self.instance_eval(File.read(filename))
+	end
+
 	def gradient(*args)
 		raise "Invalid arguments" unless args.size >= 3 && args.last.is_a?(String)
 		rgb = []
