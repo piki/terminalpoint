@@ -791,7 +791,7 @@ end
 
 def usage
 	puts "Usage:"
-	puts "  #{$0} [--slide N]"
+	puts "  #{$0} [--slide N] filename.tpt"
 	puts "  #{$0} [--config] [--colors]"
 end
 
