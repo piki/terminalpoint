@@ -2,7 +2,7 @@ require './lib/buffer.rb'
 require 'set'
 
 # New slide appears in place, from top to bottom
-def wipe_down(from, to, old_idx, new_idx)
+def transition_wipe_down(from, to, old_idx, new_idx)
 	from = from.render
 	to = to.render
 	(0...from.height).each do |frame|
@@ -19,7 +19,7 @@ def wipe_down(from, to, old_idx, new_idx)
 end
 
 # New slide slides in from the top
-def slide_down(from, to, old_idx, new_idx)
+def transition_slide_down(from, to, old_idx, new_idx)
 	from = from.render
 	to = to.render
 	(0...from.height).each do |frame|
@@ -40,7 +40,7 @@ def slide_down(from, to, old_idx, new_idx)
 end
 
 # New slide slides in from the bottom
-def slide_up(from, to, old_idx, new_idx)
+def transition_slide_up(from, to, old_idx, new_idx)
 	from = from.render
 	to = to.render
 	(0...from.height).each do |frame|
@@ -60,7 +60,7 @@ def slide_up(from, to, old_idx, new_idx)
 end
 
 # New slide slides in from the right
-def slide_left(from, to, old_idx, new_idx)
+def transition_slide_left(from, to, old_idx, new_idx)
 	from = from.render
 	to = to.render
 	add_footer(to, new_idx)
@@ -79,7 +79,7 @@ def slide_left(from, to, old_idx, new_idx)
 end
 
 # New slide appears in place, from the corners toward the middle
-def diamond_wipe(from, to, old_idx, new_idx)
+def transition_diamond_wipe(from, to, old_idx, new_idx)
 	from = from.render
 	add_footer(from, old_idx)
 	to = to.render
@@ -109,7 +109,7 @@ def diamond_wipe(from, to, old_idx, new_idx)
 end
 
 # New slide sparkles in randomly, two characters at a time
-def sparkle_in(from, to, old_idx, new_idx)
+def transition_sparkle_in(from, to, old_idx, new_idx)
 	from = from.render
 	to = to.render
 	order = (0...from.width/2).map {|x| (0...from.height).map {|y| [x,y]}}.flatten(1).shuffle

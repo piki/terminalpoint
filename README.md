@@ -8,6 +8,7 @@ TerminalPoint lets you create beautifully minimalist slides presentations for di
 ./terminalpoint presentation.tpt | less -r
 ./terminalpoint --config
 ./terminalpoint --colors
+./terminalpoint --transitions
 ```
 
 Then just use normal `less` hotkeys to page through the presentation:

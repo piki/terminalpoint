@@ -749,7 +749,7 @@ class TerminalPoint
 						if current_slide != @slides.size - 1
 							current_slide = current_slide + 1
 							if !CONFIG['transition'].empty? && CONFIG['transition'] != "none"
-								send(CONFIG['transition'], @slides[current_slide-1], @slides[current_slide], current_slide-1, current_slide)
+								send("transition_#{CONFIG['transition']}", @slides[current_slide-1], @slides[current_slide], current_slide-1, current_slide)
 							else
 								show(current_slide)
 							end
@@ -796,7 +796,7 @@ end
 def usage
 	puts "Usage:"
 	puts "  #{$0} [--slide N] filename.tpt"
-	puts "  #{$0} [--config] [--colors]"
+	puts "  #{$0} [--config] [--colors] [--transitions]"
 end
 
 start_slide = 1
@@ -813,6 +813,11 @@ while !ARGV.empty?
 		when "--colors"
 			COLOR.each do |key, value|
 				puts "COLOR[#{key.inspect}] = #{value.inspect}"
+			end
+			quit_now = true
+		when "--transitions"
+			private_methods(false).select { |m| m.to_s.start_with?("transition_") }.each do |funcname|
+				puts "CONFIG['transition'] = \"#{funcname[11..]}\""
 			end
 			quit_now = true
 		when "--slide"
