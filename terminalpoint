@@ -845,4 +845,11 @@ DEFAULTS = CONFIG.dup
 		
 tp = TerminalPoint.new(filename != "-" && STDOUT.tty?)
 tp.instance_eval(filename == "-" ? STDIN.read : File.read(filename))
+if tp.empty?
+	puts "No slides found.  Is this a template file?"
+	puts "Use template files with a line like this in your .tpt file:"
+	puts
+	puts "include '#{filename}'"
+	exit 0
+end
 tp.play(start_slide-1) unless tp.empty?
