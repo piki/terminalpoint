@@ -5,7 +5,7 @@ require './lib/decorated_text'
 require './lib/buffer'
 require './lib/animations'
 
-ROWS = IO.console.winsize[0] - (STDOUT.tty? ? 0 : 1) # leave one for the `less` status bar
+ROWS = IO.console.winsize[0]
 COLS = IO.console.winsize[1]
 
 CONFIG = {
@@ -444,10 +444,13 @@ end
 class Slide
 	attr_reader :slide_num
 
-	def initialize(slide_num)
+	def initialize(slide_num, interactive)
 		@slide_num = slide_num
 		@entries = []
 		@current_column = nil
+		@interactive = interactive
+		@rows = ROWS
+ 		@rows -= 1 if !interactive # leave one for the `less` status bar
 	end
 
 	def finalize
@@ -458,7 +461,7 @@ class Slide
 	end
 
 	def render
-		buffer = RenderBuffer.new(COLS, ROWS)
+		buffer = RenderBuffer.new(COLS, @rows)
 		max_content_width = [
 			@entries.map{|s| s.width}.max,
 			COLS - @pad_left - @pad_right
@@ -472,14 +475,14 @@ class Slide
 				col_set << e
 				next
 			elsif !col_set.empty?
-				ypos += display_columns(buffer.child(@pad_left, ypos, COLS - @pad_left - @pad_right, ROWS - ypos), col_set)
+				ypos += display_columns(buffer.child(@pad_left, ypos, COLS - @pad_left - @pad_right, @rows - ypos), col_set)
 				col_set = []
 			end
 
 			if e.own_padding?
-				ypos += e.render(buffer.child(0, ypos, COLS, ROWS - ypos), max_content_width)
+				ypos += e.render(buffer.child(0, ypos, COLS, @rows - ypos), max_content_width)
 			else
-				ypos += e.render(buffer.child(@pad_left, ypos, COLS - @pad_left - @pad_right, ROWS - ypos), max_content_width)
+				ypos += e.render(buffer.child(@pad_left, ypos, COLS - @pad_left - @pad_right, @rows - ypos), max_content_width)
 			end
 		end
 
@@ -535,15 +538,16 @@ class Slide
 end
 
 class TerminalPoint
-	def initialize
+	def initialize(interactive)
 		@slides = []
+		@interactive = interactive
 	end
 
 	# [DSL] begin a new slide
 	def slide
 		@slides.last&.finalize
 		last_slide = @slides.empty? ? 0 : @slides.last.slide_num
-		@slides << Slide.new(last_slide + 1)
+		@slides << Slide.new(last_slide + 1, @interactive)
 	end
 
 	# [DSL] pause for input before displaying the next element
@@ -725,9 +729,9 @@ class TerminalPoint
 	def play(start_slide)
 		@slides.last&.finalize
 
-		if !STDOUT.tty?
+		if !@interactive
 			@slides[start_slide..].each do |slide|
-				slide.render.display
+				slide.render.display(@interactive)
 			end
 			return
 		end
@@ -785,7 +789,7 @@ class TerminalPoint
 	def show(current_slide)
 		buf = @slides[current_slide].render
 		add_footer(buf, current_slide)
-		STDIN.cooked { buf.display }
+		STDIN.cooked { buf.display(@interactive) }
 	end
 end
 
@@ -830,6 +834,6 @@ exit 0 if quit_now
 
 DEFAULTS = CONFIG.dup
 		
-tp = TerminalPoint.new
-tp.instance_eval(File.read(filename))
+tp = TerminalPoint.new(filename != "-" && STDOUT.tty?)
+tp.instance_eval(filename == "-" ? STDIN.read : File.read(filename))
 tp.play(start_slide-1)
