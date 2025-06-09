@@ -670,6 +670,10 @@ class TerminalPoint
 		}.join
 	end
 
+	def empty?
+		@slides.empty?
+	end
+
 	def TerminalPoint.display_width(s)
 		s.gsub(/\x1b\[[0-9;]+m/, '').size
 	end
@@ -841,4 +845,4 @@ DEFAULTS = CONFIG.dup
 		
 tp = TerminalPoint.new(filename != "-" && STDOUT.tty?)
 tp.instance_eval(filename == "-" ? STDIN.read : File.read(filename))
-tp.play(start_slide-1)
+tp.play(start_slide-1) unless tp.empty?
