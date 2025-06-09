@@ -39,6 +39,26 @@ def slide_down(from, to, old_idx, new_idx)
 	show(new_idx)
 end
 
+# New slide slides in from the bottom
+def slide_up(from, to, old_idx, new_idx)
+	from = from.render
+	to = to.render
+	(0...from.height).each do |frame|
+		buf = RenderBuffer.new(from.width, from.height)
+		(0...from.height).each do |rownum|
+			dtxt = if rownum >= from.height - frame
+				to.take(0, rownum-from.height+frame, from.width)
+			else
+				from.take(0, rownum, from.width)
+			end
+			buf.write(0, rownum, dtxt)
+		end
+		STDIN.cooked { buf.display }
+		sleep CONFIG['transition.speed']/from.height
+	end
+	show(new_idx)
+end
+
 # New slide slides in from the right
 def slide_left(from, to, old_idx, new_idx)
 	from = from.render
