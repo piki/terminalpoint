@@ -18,8 +18,9 @@ class ChildRenderBuffer < BufferBase
 	end
 
 	def write(x, y, dtxt)
-		raise "y is out of bounds: #{y} >= #{height}" if y >= @height
-		raise "x is out of bounds: #{x} + #{dtxt.width} > #{@width}" if x + dtxt.width > @width
+		return if y >= @height || @height <= 0
+		return if x >= @width || @width <= 0
+		return if x + dtxt.width > @width
 		
 		@block.call(x, y, dtxt)
 	end

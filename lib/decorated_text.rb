@@ -60,7 +60,7 @@ class DecoratedText
 		# If we had an odd number of backticks, then the last one shows up as
 		# a literal ` character.
 		ansi = if split.size % 2 == 0
-			split[..-2].join + "`" + split[-1]
+			split[0..-2].join + "`" + split[-1]
 		else
 			split.join
 		end
@@ -178,8 +178,6 @@ class DecoratedText
 		"\x1b[0;#{codes}m#{sfix}\x1b[0m"
 	end
 
-
-private
 	# Split this DecoratedText into an array of multiple DecoratedText
 	# objects, separated by a regular expression.  If re occurs in the
 	# middle of a segment, that segment will be split.
