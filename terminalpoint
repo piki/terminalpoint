@@ -462,13 +462,6 @@ class Slide
 	end
 
 	def render
-		# Ensure padding values are set
-		@pad_top ||= CONFIG['pad.top']
-		@pad_left ||= CONFIG['pad.left']
-		@pad_right ||= CONFIG['pad.right']
-		@pad_column ||= CONFIG['pad.column']
-		@transition ||= CONFIG['transition']
-		
 		buffer = RenderBuffer.new(COLS, @rows)
 		max_content_width = [
 			@entries.map{|s| s.width}.max || 0,
