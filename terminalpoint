@@ -5,8 +5,8 @@ require File.join(File.dirname(__FILE__), 'lib', 'decorated_text')
 require File.join(File.dirname(__FILE__), 'lib', 'buffer')
 require File.join(File.dirname(__FILE__), 'lib', 'animations')
 
-ROWS = IO.console.winsize[0]
-COLS = IO.console.winsize[1]
+ROWS = IO.console&.winsize&.[](0) || 24
+COLS = IO.console&.winsize&.[](1) || 80
 
 CONFIG = {
 	"title.color" => "bold",
@@ -462,9 +462,16 @@ class Slide
 	end
 
 	def render
+		# Ensure padding values are set
+		@pad_top ||= CONFIG['pad.top']
+		@pad_left ||= CONFIG['pad.left']
+		@pad_right ||= CONFIG['pad.right']
+		@pad_column ||= CONFIG['pad.column']
+		@transition ||= CONFIG['transition']
+		
 		buffer = RenderBuffer.new(COLS, @rows)
 		max_content_width = [
-			@entries.map{|s| s.width}.max,
+			@entries.map{|s| s.width}.max || 0,
 			COLS - @pad_left - @pad_right
 		].min
 
@@ -758,7 +765,7 @@ class TerminalPoint
 						if current_slide != @slides.size - 1
 							current_slide = current_slide + 1
 							transition = @slides[current_slide].transition
-							if !transition.empty? && transition != "none"
+							if transition && !transition.empty? && transition != "none"
 								send("transition_#{transition}", @slides[current_slide-1], @slides[current_slide], current_slide-1, current_slide)
 							else
 								show(current_slide)
