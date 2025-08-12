@@ -3,18 +3,18 @@ class BufferBase
 		raise "child is too wide: #{xofs} + #{width} > #{@width}" if xofs + width > @width
 		raise "child is too tall: #{yofs} + #{height} > #{@height}" if yofs + height > @height
 
-		ChildRenderBuffer.new(width, height) do |x, y, dtxt|
-			self.write(xofs + x, yofs + y, dtxt)
-		end
+		ChildRenderBuffer.new(width, height, xofs, yofs, self)
 	end
 end
 
 class ChildRenderBuffer < BufferBase
 	attr_reader :width, :height
-	def initialize(width, height, &block)
+	def initialize(width, height, xofs, yofs, parent)
 		@width = width
 		@height = height
-		@block = block
+		@xofs = xofs
+		@yofs = yofs
+		@parent = parent
 	end
 
 	def write(x, y, dtxt)
@@ -22,7 +22,15 @@ class ChildRenderBuffer < BufferBase
 		return if x >= @width || @width <= 0
 		return if x + dtxt.width > @width
 		
-		@block.call(x, y, dtxt)
+		@parent.write(@xofs+x, @yofs+y, dtxt)
+	end
+
+	def xofs
+		@xofs + @parent.xofs
+	end
+
+	def yofs
+		@yofs + @parent.yofs
 	end
 end
 
@@ -39,7 +47,7 @@ class RenderBuffer < BufferBase
 		raise "y is out of bounds: #{y} >= #{height}" if y >= @height
 		raise "x is out of bounds: #{x} + #{dtxt.width} > #{@width}" if x + dtxt.width > @width
 		line = @lines[y]
-		raise "overwrite on line #{y}: #{x} < #{line.width}" if x < line.width
+		raise "overwrite on line #{y}: #{x} < #{line.width}\n#{line.inspect}" if x < line.width
 		gap = x - line.width
 		line << DecoratedTextSegment.new("", " " * gap) if gap > 0
 		line.push_all(dtxt)
@@ -72,5 +80,13 @@ class RenderBuffer < BufferBase
 			break if width == 0
 		end
 		ret
+	end
+
+	def xofs
+		0
+	end
+
+	def yofs
+		0
 	end
 end

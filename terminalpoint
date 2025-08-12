@@ -488,7 +488,7 @@ class Slide
 		end
 
 		if !col_set.empty?
-			ypos += display_columns(buffer, col_set)
+			ypos += display_columns(buffer.child(@pad_left, ypos, COLS - @pad_left - @pad_right, @rows - ypos), col_set)
 		end
 
 		buffer
