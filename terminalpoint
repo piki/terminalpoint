@@ -9,6 +9,7 @@ ROWS = IO.console&.winsize&.[](0) || 24
 COLS = IO.console&.winsize&.[](1) || 80
 
 CONFIG = {
+	"bounds" => "ignore",
 	"title.color" => "bold",
 	"title.position" => "center",  # or "left", or "right", or "content-center"
 	"title.box" => "none", # or any combination of "top", "bottom", "left", "right", "double"; "box" means "top bottom left right"

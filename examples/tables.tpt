@@ -1,3 +1,5 @@
+config 'bounds', 'strict'
+
 slide
 	title "Table Examples"
 	bullet "This presentation demonstrates table formatting"

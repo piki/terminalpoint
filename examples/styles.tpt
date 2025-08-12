@@ -1,3 +1,5 @@
+config 'bounds', 'strict'
+
 slide
 	title "Style Examples"
 	bullet "This presentation demonstrates text formatting and colors"

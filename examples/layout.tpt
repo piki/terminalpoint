@@ -1,3 +1,5 @@
+config 'bounds', 'strict'
+
 slide
 	title "Layout Examples"
 	bullet "This presentation demonstrates different layout options"

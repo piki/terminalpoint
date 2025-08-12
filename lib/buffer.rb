@@ -18,10 +18,6 @@ class ChildRenderBuffer < BufferBase
 	end
 
 	def write(x, y, dtxt)
-		return if y >= @height || @height <= 0
-		return if x >= @width || @width <= 0
-		return if x + dtxt.width > @width
-		
 		@parent.write(@xofs+x, @yofs+y, dtxt)
 	end
 
@@ -42,12 +38,28 @@ class RenderBuffer < BufferBase
 		@lines = (0...@height).map{ DecoratedText.new }
 	end
 
+	def check_bounds(x, y, txt_width)
+		return "y is out of bounds: #{y} >= #{height}" if y >= @height
+		return "x is out of bounds: #{x} + #{txt_width} > #{@width}" if x + txt_width > @width
+		line = @lines[y]
+		return "overwrite on line #{y}: #{x} < #{line.width}\n#{line.inspect}" if x < line.width
+		nil
+	end
+
 	def write(x, y, dtxt)
 		return if dtxt.empty?
-		raise "y is out of bounds: #{y} >= #{height}" if y >= @height
-		raise "x is out of bounds: #{x} + #{dtxt.width} > #{@width}" if x + dtxt.width > @width
+
+		if msg = check_bounds(x, y, dtxt.width)
+			case CONFIG['bounds']
+				when 'strict'
+					raise msg
+				when 'warn'
+					@lines[0] = DecoratedText.new("31;42", "OVERRUN")
+			end
+			return
+		end
+
 		line = @lines[y]
-		raise "overwrite on line #{y}: #{x} < #{line.width}\n#{line.inspect}" if x < line.width
 		gap = x - line.width
 		line << DecoratedTextSegment.new("", " " * gap) if gap > 0
 		line.push_all(dtxt)

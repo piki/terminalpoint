@@ -1,3 +1,5 @@
+config 'bounds', 'strict'
+
 slide
 	title "Diagram Examples"
 	bullet "This presentation demonstrates inline diagrams and ASCII art"
