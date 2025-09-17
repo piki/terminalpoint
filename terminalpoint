@@ -883,6 +883,7 @@ while !ARGV.empty?
 			private_methods(false).select { |m| m.to_s.start_with?("transition_") }.each do |funcname|
 				puts "CONFIG['transition'] = \"#{funcname[11..]}\""
 			end
+			puts "CONFIG['transition'] = \"none\""
 			quit_now = true
 		when "--slide"
 			start_slide = ARGV.shift.to_i
