@@ -48,6 +48,7 @@ pre <<-'EOF'
  \----------------/
 EOF
 ```
+* `viu(filename, h: N)` displays an image, scaled to the given height.
 * `center pre "Text"` displays an inline string or diagram, centered horizontally.
 * `table [ [ "a", "b" ], [ "c", "d" ] ]` adds a table to the current slide.  It's OK to declare your rows across several lines of the `.tpt` file.
 * `config "key", value` alters a configuration value, for layout and styling.
