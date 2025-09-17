@@ -438,7 +438,7 @@ class Pre < Entry
 	end
 
 	def width
-		@txt.lines.map(&:size).max
+		@txt.lines.map{|line| DecoratedText.from_ansi(line.chomp).width}.max
 	end
 
 	def min_width
@@ -447,7 +447,7 @@ class Pre < Entry
 
 	def render(buf, max_content_width)
 		@txt.lines.each_with_index do |line, i|
-			buf.write(0, i, DecoratedText.new("", line.chomp))
+			buf.write(0, i, DecoratedText.from_ansi(line.chomp))
 		end
 		@txt.lines.size + 1
 	end
