@@ -1,0 +1,35 @@
+config 'transition', 'none'
+
+slide
+title "TerminalPoint supports inline images"
+	bullet "It uses the kitty protocol"
+	viu("win.png", w: 20)
+	bullet "You have to have `viu` installed, from _https://github.com/atanunq/viu_"
+
+slide
+title "You can center or left-pad it"
+	bullet "Centered"
+	center viu("win.png", h: 3)
+	bullet "Left padded"
+	viu("win.png", h: 3, x: 10)
+
+slide
+title "Limitations"
+	bullet "They don't (yet) work in columns, tables, or animations"
+
+#slide
+#title "They work in columns"
+#	column
+#		bullet "left"
+#	column
+#		viu("win.png", h: 3)
+#	column
+#		bullet "right"
+#
+#slide
+#title "They work in tables"
+#	table [
+#		[ "1", "2", "3" ],
+#		[ "4", viu("win.png", h: 3), "6" ],
+#		[ "7", "8", "9" ],
+#	]

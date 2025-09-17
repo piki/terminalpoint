@@ -258,6 +258,48 @@ class Bullet < Entry
 	end
 end
 
+class Viu < Entry
+	def initialize(imgfile, args)
+		@imgfile = imgfile
+		args.each do |k, v|
+			case k
+				when :w
+					@width = v
+				when :h
+					@height = v
+				when :x
+					@left_pad = v
+				else
+					raise "Unknown argument to Viu: #{k.inspect}"
+			end
+		end
+
+		cmd = "viu"
+		cmd += " -h #{@height}" if @height
+		cmd += " -w #{@width}" if @width
+		cmd += " #{@imgfile}"
+		viu_data = `#{cmd}`
+
+		# strip off terminal capabilities query
+		viu_data.gsub!(/^\e_G[\w=,]*a=q[\w=,]*;\w+==\e\\/, '')
+		@seg = KittySegment.new(viu_data)
+	end
+
+	def width
+		@seg.width
+	end
+
+	def min_width
+		@seg.width
+	end
+
+	def render(buf, max_content_width)
+		buf.write(@left_pad || 0, 0, @seg.as_decorated_text)
+
+		@seg.height + 1
+	end
+end
+
 class Table < Entry
 	def initialize(arr)
 		is_header = false
@@ -540,7 +582,8 @@ class Slide
 end
 
 class TerminalPoint
-	def initialize(interactive)
+	def initialize(filename, interactive)
+		@filename = filename
 		@slides = []
 		@interactive = interactive
 	end
@@ -669,6 +712,16 @@ class TerminalPoint
 			end
 			fmt("#%02x%02x%02x" % shade, c)
 		}.join
+	end
+
+	# [DSL] display an image inline using viu
+	def viu(imgfile, **args)
+		if !File.exist?(imgfile) && !/\//.match?(imgfile)
+			imgfile = File.dirname(@filename) + "/" + imgfile
+		end
+		raise "File not found: #{imgfile}" if !File.exist?(imgfile)
+
+		@slides.last << Viu.new(imgfile, args)
 	end
 
 	# [DSL] read another file inline with this one, like a template or a theme
@@ -850,7 +903,7 @@ exit 0 if quit_now
 
 DEFAULTS = CONFIG.dup
 		
-tp = TerminalPoint.new(filename != "-" && STDOUT.tty?)
+tp = TerminalPoint.new(filename, filename != "-" && STDOUT.tty?)
 tp.instance_eval(filename == "-" ? STDIN.read : File.read(filename))
 if tp.empty?
 	puts "No slides found.  Is this a template file?"

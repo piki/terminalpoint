@@ -8,6 +8,68 @@ DecoratedTextSegment = Struct.new(:codes, :txt) do
 			"\e[#{codes}m#{txt}\e[0m"
 		end
 	end
+
+	def empty?
+		txt.empty?
+	end
+
+	def width
+		txt.size
+	end
+end
+
+KittySegment = Struct.new(:data) do
+	def codes
+		"<KITTY>"
+	end
+		
+	def txt
+		"[KITTY image: #{data.size} bytes]"
+	end
+
+	def to_ansi
+		# position the cursor back up `height` rows because displaying
+		# an image advances the cursor, but buffer renderers also want
+		# to advance the cursor
+		data + "\x1b[#{height}A"
+	end
+
+	def as_decorated_text
+		d = DecoratedText.new
+		d << self
+		d
+	end
+
+	def empty?
+		data.empty?
+	end
+
+	def width
+		if control_codes =~ /c=(\d+)/
+			$1.to_i
+		else
+			1
+		end
+	end
+
+	def height
+		if control_codes =~ /r=(\d+)/
+			$1.to_i
+		else
+			1
+		end
+	end
+
+private
+	def control_codes
+		@cc_cache ||= begin
+			if data =~ /^\e_G([\w=,]+);/
+				$1
+			else
+				""
+			end
+		end
+	end
 end
 
 # Struct to contain several DecoratedTextSegments.  Any two adjacent
@@ -100,7 +162,7 @@ class DecoratedText
 
 	# Add a new segment to the end of the text
 	def <<(seg)
-		return if seg.txt.empty?
+		return if seg.empty?
 		if !@segments.empty? && @segments.last.codes == seg.codes
 			@segments.last.txt += seg.txt
 		else
@@ -133,7 +195,7 @@ class DecoratedText
 
 	# Return the maximum display width of the text, with no wrapping
 	def width
-		@segments.map {|seg| seg.txt.length}.sum
+		@segments.map {|seg| seg.width}.sum
 	end
 
 	# True if there is no text
@@ -189,7 +251,7 @@ class DecoratedText
 			parts = segment.txt.split(re, -1)
 			
 			if parts.length == 1
-				current << DecoratedTextSegment.new(segment.codes, parts[0])
+				current << segment
 			else
 				parts.each_with_index do |part, i|
 					if i == 0
