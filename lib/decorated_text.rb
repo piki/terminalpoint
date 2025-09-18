@@ -31,7 +31,7 @@ KittySegment = Struct.new(:data) do
 		# position the cursor back up `height` rows because displaying
 		# an image advances the cursor, but buffer renderers also want
 		# to advance the cursor
-		data + "\x1b[#{height}A"
+		data + "\x1b[#{height-1}A"
 	end
 
 	def as_decorated_text

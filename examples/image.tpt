@@ -14,18 +14,22 @@ title "You can center or left-pad it"
 	viu("win.png", h: 3, x: 10)
 
 slide
-title "Limitations"
-	bullet "They don't (yet) work in columns, tables, or animations"
+title "They work in columns"
+	column
+		bullet "one"
+	column
+		viu("win.png", h: 3)
+	column
+		bullet "three"
+	column
+		bullet "four"
+	column
+		bullet "five"
 
-#slide
-#title "They work in columns"
-#	column
-#		bullet "left"
-#	column
-#		viu("win.png", h: 3)
-#	column
-#		bullet "right"
-#
+slide
+title "Limitations"
+	bullet "They don't (yet) work in tables or animations"
+
 #slide
 #title "They work in tables"
 #	table [

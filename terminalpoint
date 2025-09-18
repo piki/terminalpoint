@@ -278,7 +278,7 @@ class Viu < Entry
 		cmd += " -h #{@height}" if @height
 		cmd += " -w #{@width}" if @width
 		cmd += " #{@imgfile}"
-		viu_data = `#{cmd}`
+		viu_data = `#{cmd}`.chomp
 
 		# strip off terminal capabilities query
 		viu_data.gsub!(/^\e_G[\w=,]*a=q[\w=,]*;\w+==\e\\/, '')
