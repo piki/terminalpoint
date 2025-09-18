@@ -27,13 +27,13 @@ title "They work in columns"
 		bullet "five"
 
 slide
-title "Limitations"
-	bullet "They don't (yet) work in tables or animations"
+title "They work in tables"
+	table [
+		[ "1", "2", "3" ],
+		[ "4", Viu.new("win.png", h: 3), "6" ],
+		[ "7", "8", "9" ],
+	]
 
-#slide
-#title "They work in tables"
-#	table [
-#		[ "1", "2", "3" ],
-#		[ "4", viu("win.png", h: 3), "6" ],
-#		[ "7", "8", "9" ],
-#	]
+slide
+title "Limitations"
+	bullet "They don't (yet) work in animations"

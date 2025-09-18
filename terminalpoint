@@ -260,6 +260,11 @@ end
 
 class Viu < Entry
 	def initialize(imgfile, args)
+		if !File.exist?(imgfile) && !/\//.match?(imgfile)
+			imgfile = File.dirname(FILENAME) + "/" + imgfile
+		end
+		raise "File not found: #{imgfile}" if !File.exist?(imgfile)
+
 		@imgfile = imgfile
 		args.each do |k, v|
 			case k
@@ -298,6 +303,10 @@ class Viu < Entry
 
 		@seg.height + 1
 	end
+
+	def as_decorated_text
+		@seg.as_decorated_text
+	end
 end
 
 class Table < Entry
@@ -309,9 +318,9 @@ class Table < Entry
 				nil
 			elsif is_header
 				is_header = false
-				[true, row.map{|col| markdown('table.header.color', col.to_s)}]
+				[true, row.map{|col| make_cell('table.header.color', col)}]
 			else
-				[false, row.map{|col| markdown('text.color', col.to_s)}]
+				[false, row.map{|col| make_cell('text.color', col)}]
 			end
 		}.compact
 
@@ -319,6 +328,15 @@ class Table < Entry
 		@table_position = CONFIG['table.position']
 		@table_header_color = TerminalPoint.color_to_codes(CONFIG['table.header.color'])
 		@table_color = TerminalPoint.color_to_codes(CONFIG['table.color'])
+	end
+
+	def make_cell(color_label, value)
+		case value
+			when Viu
+				value.as_decorated_text
+			else
+				markdown(color_label, value.to_s)
+		end
 	end
 
 	def width
@@ -386,7 +404,7 @@ class Table < Entry
 		end
 		ypos += 1
 		@arr.each_with_index do |(is_header, row), rownum|
-			lines_this_row = row.zip(col_widths).map { |cell, w| cell.wrap(w).size }.max
+			lines_this_row = row.zip(col_widths).map { |cell, w| cell.height(w) }.max
 
 			# draw the left-edge vertical line at the start of the row
 			(0...lines_this_row).each do |rowline|
@@ -742,11 +760,6 @@ class TerminalPoint
 
 	# [DSL] display an image inline using viu
 	def viu(imgfile, **args)
-		if !File.exist?(imgfile) && !/\//.match?(imgfile)
-			imgfile = File.dirname(@filename) + "/" + imgfile
-		end
-		raise "File not found: #{imgfile}" if !File.exist?(imgfile)
-
 		@slides.last << Viu.new(imgfile, args)
 	end
 
@@ -929,7 +942,8 @@ end
 exit 0 if quit_now
 
 DEFAULTS = CONFIG.dup
-		
+
+FILENAME = filename
 tp = TerminalPoint.new(filename, filename != "-" && STDOUT.tty?)
 tp.instance_eval(filename == "-" ? STDIN.read : File.read(filename))
 if tp.empty?

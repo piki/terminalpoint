@@ -16,15 +16,23 @@ DecoratedTextSegment = Struct.new(:codes, :txt) do
 	def width
 		txt.size
 	end
+
+	def height
+		1
+	end
 end
 
 KittySegment = Struct.new(:data) do
 	def codes
+		# return a bogus code string that won't equal any other segment's
+		# codes, so we don't get combined with any other segments
 		"<KITTY>"
 	end
 		
 	def txt
-		"[KITTY image: #{data.size} bytes]"
+		# return a string with the correct length and no spaces, to prevent
+		# layout code from splitting it, because images can't be wrapped
+		"K" * width
 	end
 
 	def to_ansi
@@ -230,6 +238,13 @@ class DecoratedText
 
 		lines << line unless line.nil?
 		lines
+	end
+
+	def height(wrap_length)
+		[
+			wrap(wrap_length).size,
+			@segments.map {|seg| seg.height}.max
+		].max
 	end
 
 # class utility functions
