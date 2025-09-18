@@ -337,6 +337,24 @@ class Table < Entry
 		min_widths.sum + ncolumns*3 + 1
 	end
 
+	def self.adjust_column_widths(col_widths, min_widths, buf_width)
+		ncolumns = col_widths.size
+		twidth = col_widths.sum + ncolumns*3 + 1
+
+		while twidth >= buf_width
+			(0...ncolumns).each do |i|
+				w = col_widths[i]
+				minw = min_widths[i]
+				col_widths[i] = [w * 9 / 10, minw].max
+			end
+			new_twidth = col_widths.sum + ncolumns*3 + 1
+			raise "Columns do not fit" if new_twidth == twidth
+			twidth = new_twidth
+		end
+
+		twidth
+	end
+
 	def render(buf, max_content_width)
 		ncolumns = @arr.map {|_, row| row.size if row.is_a?(Array)}.compact.max
 		col_widths = (0...ncolumns).map do |col|
@@ -345,16 +363,8 @@ class Table < Entry
 		min_widths = (0...ncolumns).map do |col|
 			@arr.map {|_, row| row[col].min_width if row.is_a?(Array)}.compact.max
 		end
-		twidth = col_widths.sum + ncolumns*3 + 1
 
-		while twidth >= buf.width
-			col_widths = col_widths.zip(min_widths).map {|w, minw|
-				[w * 9 / 10, minw].max
-			}
-			new_twidth = col_widths.sum + ncolumns*3 + 1
-			raise "Table does not fit" if new_twidth == twidth
-			twidth = new_twidth
-		end
+		twidth = Table.adjust_column_widths(col_widths, min_widths, buf.width)
 
 		ypos = 0
 
@@ -467,6 +477,10 @@ class Column < Entry
 		@entries.map { |e| e.width }.max
 	end
 
+	def min_width
+		@entries.map { |e| e.min_width }.max
+	end
+
 	def render(buf, max_content_width)
 		max_content_width = @entries.map{|s| s.width}.max
 
@@ -538,15 +552,27 @@ class Slide
 	end
 
 	def display_columns(buffer, col_set)
-		# TODO: use weight or automatic allocation here
+		col_widths = col_set.map(&:width)
+		min_widths = col_set.map(&:min_width)
+
 		col_width = (buffer.width - @pad_column * (col_set.size - 1)) / col_set.size
+
+		# if all columns are small, use equal widths
+		if col_widths.all? { |w| w <= col_width }
+			col_widths = (0...col_set.size).map { col_width }
+		else
+			# otherwise, shrink proportionally from the width requests until
+			# they fit
+			Table.adjust_column_widths(col_widths, min_widths, buffer.width)
+		end
+
 		col_set.each_with_index.map do |col, i|
 			max_content_width = [
 				col.width,
-				col_width
+				col_widths[i]
 			].min
 
-			col.render(buffer.child(i * (col_width + @pad_column), 0, col_width, buffer.height), max_content_width)
+			col.render(buffer.child(col_widths[...i].sum + i * @pad_column, 0, col_widths[i], buffer.height), max_content_width)
 		end.max
 	end
 
