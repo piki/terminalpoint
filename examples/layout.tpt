@@ -32,6 +32,15 @@ EOF
 	bullet "Under the columns"
 
 slide
+	title "Columns with explicit weight"
+	column 30
+		bullet "This column has very wide text but will display in 30% of the width"
+	column 70
+		bullet "70% weight"
+		bullet "Narrow text"
+		bullet "Wasted space!"
+
+slide
 	title "Default Layout"
 	bullet "This slide uses default positioning"
 	bullet "Title at top, standard padding"

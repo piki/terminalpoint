@@ -482,9 +482,11 @@ class Pre < Entry
 end
 
 class Column < Entry
+	attr_reader :weight
+
 	def initialize(weight)
 		@entries = []
-		@weight = weight  # TODO
+		@weight = weight
 	end
 
 	def <<(ent)
@@ -534,6 +536,13 @@ class Slide
 		@pad_right = CONFIG['pad.right']
 		@pad_column = CONFIG['pad.column']
 		@transition = CONFIG['transition']
+
+		col_set = @entries.select {|e| e.is_a?(Column) }
+		if col_set.any? {|col| !col.weight.nil?}
+			if !col_set.all? {|col| !col.weight.nil?}
+				raise "If any column has a weight, they all must, on slide #{slide_num}"
+			end
+		end
 	end
 
 	def render
@@ -575,8 +584,13 @@ class Slide
 
 		col_width = (buffer.width - @pad_column * (col_set.size - 1)) / col_set.size
 
-		# if all columns are small, use equal widths
-		if col_widths.all? { |w| w <= col_width }
+		if !col_set.first.weight.nil?
+			total_weight = col_set.map(&:weight).sum
+			col_widths = col_set.map do |col|
+				((buffer.width - @pad_column * (col_set.size - 1)) * col.weight / total_weight).to_i
+			end
+		elsif col_widths.all? { |w| w <= col_width }
+			# if all columns are small, use equal widths
 			col_widths = (0...col_set.size).map { col_width }
 		else
 			# otherwise, shrink proportionally from the width requests until
