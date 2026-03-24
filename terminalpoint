@@ -313,7 +313,7 @@ class Viu < Entry
 
 		tmp = Tempfile.new(['tp_img', '.png'])
 		tmp.close
-		`sips -z #{target_h_px} #{target_w_px} #{Shellwords.escape(@imgfile)} --out #{Shellwords.escape(tmp.path)} 2>/dev/null`
+		`sips --setProperty format png -z #{target_h_px} #{target_w_px} #{Shellwords.escape(@imgfile)} --out #{Shellwords.escape(tmp.path)} 2>/dev/null`
 		png_data = File.binread(tmp.path)
 		tmp.unlink
 
