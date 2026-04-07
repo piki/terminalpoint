@@ -283,15 +283,60 @@ class Viu < Entry
 			end
 		end
 
-		cmd = "viu"
-		cmd += " -h #{@height}" if @height
-		cmd += " -w #{@width}" if @width
-		cmd += " #{@imgfile}"
-		viu_data = `#{cmd}`.chomp
+		require 'shellwords'
+		require 'tempfile'
 
-		# strip off terminal capabilities query (base64 may have 0, 1, or 2 padding chars)
-		viu_data.gsub!(/^\e_G[\w=,]*a=q[\w=,]*;[\w+\/]+=*\e\\\e\[c/, '')
-		@seg = KittySegment.new(viu_data)
+		# Get pixel dimensions via sips (built-in macOS tool)
+		info = `sips -g pixelWidth -g pixelHeight #{Shellwords.escape(@imgfile)} 2>/dev/null`
+		img_w = info[/pixelWidth: (\d+)/, 1].to_i
+		img_h = info[/pixelHeight: (\d+)/, 1].to_i
+		raise "Could not read image dimensions: #{@imgfile}" if img_w == 0 || img_h == 0
+
+		# Determine display size in terminal cells.
+		# Cell aspect ratio (height:width in pixels) ≈ 2:1 for most terminal fonts.
+		cell_ratio = 2.0
+		if @width && @height
+			display_cols = @width
+			display_rows = @height
+		elsif @width
+			display_cols = @width
+			display_rows = [(img_h.to_f * display_cols / img_w / cell_ratio).ceil, 1].max
+		elsif @height
+			display_rows = @height
+			display_cols = [(img_w.to_f * display_rows * cell_ratio / img_h).ceil, 1].max
+		else
+			display_cols = [(img_w / 10.0).ceil, COLS - 4].min.clamp(1, COLS)
+			display_rows = [(img_h.to_f * display_cols / img_w / cell_ratio).ceil, 1].max
+		end
+
+		# Resize image to approximate display resolution (10px per column).
+		# The terminal will scale it to exact cell dimensions; this just keeps
+		# the encoded data small.
+		target_w_px = display_cols * 10
+		target_h_px = (img_h.to_f * target_w_px / img_w).round.clamp(1, 9999)
+
+		tmp = Tempfile.new(['tp_img', '.png'])
+		tmp.close
+		`sips --setProperty format png -z #{target_h_px} #{target_w_px} #{Shellwords.escape(@imgfile)} --out #{Shellwords.escape(tmp.path)} 2>/dev/null`
+		png_data = File.binread(tmp.path)
+		tmp.unlink
+
+		# Encode as kitty protocol APC chunks.
+		# f=100: PNG payload, a=T: transmit+display, q=2: no ACK required,
+		# c/r: display size in terminal cells, m: 1=more chunks coming, 0=last.
+		b64 = [png_data].pack('m0')
+		chunks = b64.scan(/.{1,4096}/m)
+		kitty_data = String.new(encoding: 'binary')
+		chunks.each_with_index do |chunk, i|
+			m = (i < chunks.size - 1) ? 1 : 0
+			if i == 0
+				kitty_data << "\e_Ga=T,f=100,q=2,c=#{display_cols},r=#{display_rows},m=#{m};#{chunk}\e\\"
+			else
+				kitty_data << "\e_Gm=#{m};#{chunk}\e\\"
+			end
+		end
+
+		@seg = KittySegment.new(kitty_data)
 	end
 
 	def width

@@ -118,12 +118,16 @@ class DecoratedText
 		split = txt.split(/`/, -1)
 		split = split.each_with_index.map{|tok, i|
 			if i % 2 == 0 || i == split.size - 1
+				# Apply underline styles first.  If we apply these after sticking
+				# `\e[0m` at the beginning of the string, then the `m` looks like
+				# the beginning of an identifier and breaks the `\b` match.
+				tok.gsub!(/\b_([^_]+)_\b/) { |txt| DecoratedText.ansi(4, txt[1..-2]) }
+
 				DecoratedText.ansi(plain_codes, tok).
 					gsub(/~([^~]*)~/) { |txt| DecoratedText.ansi(9, txt[1..-2]) }.
 					gsub(/\*\*([^*]*)\*\*/) { |txt| DecoratedText.ansi(1, txt[2..-3]) }.
 					gsub(/__([^_]*)__/) { |txt| DecoratedText.ansi(1, txt[2..-3]) }.
-					gsub(/\*(\w[^*]*)\*/) { |txt| DecoratedText.ansi(3, txt[1..-2]) }.
-					gsub(/\b_([^_]*)_\b/) { |txt| DecoratedText.ansi(4, txt[1..-2]) }
+					gsub(/\*(\w[^*]*)\*/) { |txt| DecoratedText.ansi(3, txt[1..-2]) }
 			else
 				DecoratedText.ansi(backtick_codes, tok)
 			end

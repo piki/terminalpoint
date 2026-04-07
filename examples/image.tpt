@@ -4,7 +4,6 @@ slide
 title "TerminalPoint supports inline images"
 	bullet "It uses the kitty protocol"
 	viu("win.png", w: 20)
-	bullet "You have to have `viu` installed, from _https://github.com/atanunq/viu_"
 
 slide
 title "You can center or left-pad it"
