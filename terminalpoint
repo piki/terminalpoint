@@ -20,12 +20,16 @@ CONFIG = {
 	"bullet.color" => "plain",
 	"text.color" => "plain",
 	"footer.color" => "plain",
+	"footer.text" => "",
+	"footer.show_slide_numbers" => true,
 	"bullet.text" => "»",
+	"quote.color" => "plain",
 	"pad.top" => 2,
 	"pad.left" => 3,
 	"pad.right" => 2,
 	"pad.title" => 2,
 	"pad.column" => 3,
+	"pad.entry" => 1,
 	"code.color" => "bold bg:dark-grey",
 	"transition" => "slide_left",
 	"transition.speed" => 0.3,
@@ -254,7 +258,7 @@ class Bullet < Entry
 			buf.write(@pad_indent + @bullet_text.width + 1, j, part)
 		end
 
-		split.size + 1
+		split.size + CONFIG['pad.entry']
 	end
 end
 
@@ -522,7 +526,25 @@ class Pre < Entry
 		@txt.lines.each_with_index do |line, i|
 			buf.write(0, i, DecoratedText.from_ansi(line.chomp))
 		end
-		@txt.lines.size + 1
+		@txt.lines.size + CONFIG['pad.entry']
+	end
+end
+
+class Space < Entry
+	def initialize(n)
+		@n = n
+	end
+
+	def width
+		0
+	end
+
+	def min_width
+		0
+	end
+
+	def render(buf, max_content_width)
+		@n
 	end
 end
 
@@ -564,7 +586,7 @@ class Column < Entry
 end
 
 class Slide
-	attr_reader :slide_num, :transition
+	attr_reader :slide_num, :transition, :footer_text, :footer_show_slide_numbers
 
 	def initialize(slide_num, interactive)
 		@slide_num = slide_num
@@ -581,6 +603,8 @@ class Slide
 		@pad_right = CONFIG['pad.right']
 		@pad_column = CONFIG['pad.column']
 		@transition = CONFIG['transition']
+		@footer_text = CONFIG['footer.text']
+		@footer_show_slide_numbers = CONFIG['footer.show_slide_numbers']
 
 		col_set = @entries.select {|e| e.is_a?(Column) }
 		if col_set.any? {|col| !col.weight.nil?}
@@ -728,6 +752,11 @@ class TerminalPoint
 		@slides.last << Pre.new(txt)
 	end
 
+	# [DSL] add vertical space (n blank lines)
+	def vspace(n = 1)
+		@slides.last << Space.new(n)
+	end
+
 	# [DSL] add a column to the slide.  All following entries go in this column.
 	#   weight: relative width of the column.  If omitted, defaults to an
 	#   equal share.
@@ -761,7 +790,12 @@ class TerminalPoint
 			return
 		end
 
-		raise "Config key #{key} must be a #{CONFIG[key].class}" unless value.is_a?(CONFIG[key].class)
+		# Handle boolean configs (TrueClass/FalseClass)
+		if [TrueClass, FalseClass].include?(CONFIG[key].class)
+			raise "Config key #{key} must be a boolean" unless [true, false].include?(value)
+		else
+			raise "Config key #{key} must be a #{CONFIG[key].class}" unless value.is_a?(CONFIG[key].class)
+		end
 		CONFIG[key] = value
 	end
 
@@ -891,8 +925,10 @@ class TerminalPoint
 		@slides.last&.finalize
 
 		if !@interactive
-			@slides[start_slide..].each do |slide|
-				slide.render.display(@interactive)
+			@slides[start_slide..].each_with_index do |slide, i|
+				buf = slide.render
+				add_footer(buf, start_slide + i)
+				buf.display(@interactive)
 			end
 			return
 		end
@@ -941,11 +977,25 @@ class TerminalPoint
 	end
 
 	def add_footer(buf, current_slide)
-		slide_num = @slides[current_slide].slide_num
-		slide_count = @slides.last.slide_num
-			footer = "#{slide_num} / #{slide_count}"
-			buf.write(buf.width - footer.size - 1, buf.height - 1,
-				DecoratedText.new(TerminalPoint.color_to_codes(CONFIG['footer.color']), footer))
+		slide = @slides[current_slide]
+		footer_parts = []
+
+		# Add custom footer text if configured
+		footer_parts << slide.footer_text unless slide.footer_text.empty?
+
+		# Add slide numbers if enabled
+		if slide.footer_show_slide_numbers
+			slide_num = slide.slide_num
+			slide_count = @slides.last.slide_num
+			footer_parts << "#{slide_num} / #{slide_count}"
+		end
+
+		# Only render footer if there's content
+		return if footer_parts.empty?
+
+		footer = footer_parts.join("  ")
+		buf.write(buf.width - footer.size - 1, buf.height - 1,
+			DecoratedText.new(TerminalPoint.color_to_codes(CONFIG['footer.color']), footer))
 	end
 
 	def show(current_slide)

@@ -1,3 +1,5 @@
+require 'unicode/display_width'
+
 # Struct to contain a single text string, decorated with a set of ANSI
 # codes.  If codes == "", then the text is plain.
 DecoratedTextSegment = Struct.new(:codes, :txt) do
@@ -14,7 +16,7 @@ DecoratedTextSegment = Struct.new(:codes, :txt) do
 	end
 
 	def width
-		txt.size
+		Unicode::DisplayWidth.of(txt)
 	end
 
 	def height
