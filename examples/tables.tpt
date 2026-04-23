@@ -188,6 +188,25 @@ slide
 
 slide
 	config :default
+	config "table.compact.header.color", "bold bg:#4060c0"
+	config "table.compact.row1.color", "#222222 bg:#eeeeee"
+	config "table.compact.row2.color", "#222222 bg:#dddddd"
+	config "table.compact.padding", 3
+	title "Compact Table"
+	bullet "Pass `:compact` before the rows for a borderless table with striped rows:"
+	table :compact, [
+		:header,
+		["Name", "Role", "Location", "Joined"],
+		["Alice", "Engineer", "New York", "2019"],
+		["Bob", "Designer", "San Francisco", "2021"],
+		["Charlie", "Manager", "Chicago", "2018"],
+		["Diana", "Engineer", "Austin", "2022"],
+		["Eve", "PM", "Seattle", "2020"]
+	]
+	bullet "Headers are bold white on dark blue; rows alternate white and light-grey"
+
+slide
+	config :default
 	config 'title.box', 'bottom'
 	config 'title.color', 'bold orange'
 	title "Ways to make slides"

@@ -17,6 +17,10 @@ CONFIG = {
 	"table.header.color" => "bold",
 	"table.position" => "center",  # or "left", or "right"
 	"table.color" => "plain",
+	"table.compact.padding" => 1,
+	"table.compact.header.color" => "bold bg:dark-blue",
+	"table.compact.row1.color" => "black bg:white",
+	"table.compact.row2.color" => "black bg:light-grey",
 	"bullet.color" => "plain",
 	"text.color" => "plain",
 	"footer.color" => "plain",
@@ -36,6 +40,7 @@ COLOR = {
 	"bold" => "1",
 	"italic" => "3",
 	"underlined" => "4",
+	"black" => "30",
 	"red" => "31",
 	"green" => "32",
 	"brown" => "33",
@@ -43,7 +48,9 @@ COLOR = {
 	"magenta" => "35",
 	"cyan" => "36",
 	"grey" => "37",
+	"light-grey" => "38;5;250",
 	"dark-grey" => "90",
+	"dark-blue" => "38;5;18",
 	"bright-red" => "91",
 	"bright-green" => "92",
 	"yellow" => "93",
@@ -355,17 +362,30 @@ class Viu < Entry
 end
 
 class Table < Entry
-	def initialize(arr)
+	def initialize(arr, compact: false)
+		@compact = compact
+		if compact
+			@compact_padding = CONFIG['table.compact.padding']
+			@compact_header_codes = TerminalPoint.color_to_codes(CONFIG['table.compact.header.color'])
+			@compact_row_codes = [
+				TerminalPoint.color_to_codes(CONFIG['table.compact.row1.color']),
+				TerminalPoint.color_to_codes(CONFIG['table.compact.row2.color']),
+			]
+		end
 		is_header = false
+		alt_idx = 0
 		arr = arr.map {|row|
 			if row == :header
 				is_header = true
 				nil
 			elsif is_header
 				is_header = false
-				[true, row.map{|col| make_cell('table.header.color', col)}]
+				codes = compact ? @compact_header_codes : nil
+				[true, row.map{|col| make_cell('table.header.color', col, codes)}, codes]
 			else
-				[false, row.map{|col| make_cell('text.color', col)}]
+				codes = compact ? @compact_row_codes[alt_idx % 2] : nil
+				alt_idx += 1
+				[false, row.map{|col| make_cell('text.color', col, codes)}, codes]
 			end
 		}.compact
 
@@ -375,34 +395,47 @@ class Table < Entry
 		@table_color = TerminalPoint.color_to_codes(CONFIG['table.color'])
 	end
 
-	def make_cell(color_label, value)
+	def make_cell(color_label, value, override_codes=nil)
 		case value
 			when Viu
 				value.as_decorated_text
 			else
-				markdown(color_label, value.to_s)
+				if override_codes
+					DecoratedText.from_markdown(override_codes, override_codes, value.to_s)
+				else
+					markdown(color_label, value.to_s)
+				end
+		end
+	end
+
+	def chrome_width(ncolumns)
+		if @compact
+			2 * @compact_padding + [ncolumns - 1, 0].max * (2 * @compact_padding + 1)
+		else
+			ncolumns*3 + 1
 		end
 	end
 
 	def width
-		ncolumns = @arr.map {|_, row| row.size if row.is_a?(Array)}.compact.max
+		ncolumns = @arr.map {|_, row, _| row.size if row.is_a?(Array)}.compact.max
 		col_widths = (0...ncolumns).map do |col|
-			@arr.map {|_, row| row[col].width if row.is_a?(Array)}.compact.max
+			@arr.map {|_, row, _| row[col].width if row.is_a?(Array)}.compact.max
 		end
-		col_widths.sum + ncolumns*3 + 1
+		col_widths.sum + chrome_width(ncolumns)
 	end
 
 	def min_width
-		ncolumns = @arr.map {|_, row| row.size if row.is_a?(Array)}.compact.max
+		ncolumns = @arr.map {|_, row, _| row.size if row.is_a?(Array)}.compact.max
 		min_widths = (0...ncolumns).map do |col|
-			@arr.map {|_, row| row[col].min_width if row.is_a?(Array)}.compact.max
+			@arr.map {|_, row, _| row[col].min_width if row.is_a?(Array)}.compact.max
 		end
-		min_widths.sum + ncolumns*3 + 1
+		min_widths.sum + chrome_width(ncolumns)
 	end
 
-	def self.adjust_column_widths(col_widths, min_widths, buf_width)
+	def self.adjust_column_widths(col_widths, min_widths, buf_width, extra: nil)
 		ncolumns = col_widths.size
-		twidth = col_widths.sum + ncolumns*3 + 1
+		extra ||= ncolumns*3 + 1
+		twidth = col_widths.sum + extra
 
 		while twidth >= buf_width
 			(0...ncolumns).each do |i|
@@ -410,7 +443,7 @@ class Table < Entry
 				minw = min_widths[i]
 				col_widths[i] = [w * 9 / 10, minw].max
 			end
-			new_twidth = col_widths.sum + ncolumns*3 + 1
+			new_twidth = col_widths.sum + extra
 			raise "Columns do not fit" if new_twidth == twidth
 			twidth = new_twidth
 		end
@@ -419,17 +452,15 @@ class Table < Entry
 	end
 
 	def render(buf, max_content_width)
-		ncolumns = @arr.map {|_, row| row.size if row.is_a?(Array)}.compact.max
+		ncolumns = @arr.map {|_, row, _| row.size if row.is_a?(Array)}.compact.max
 		col_widths = (0...ncolumns).map do |col|
-			@arr.map {|_, row| row[col].width if row.is_a?(Array)}.compact.max
+			@arr.map {|_, row, _| row[col].width if row.is_a?(Array)}.compact.max
 		end
 		min_widths = (0...ncolumns).map do |col|
-			@arr.map {|_, row| row[col].min_width if row.is_a?(Array)}.compact.max
+			@arr.map {|_, row, _| row[col].min_width if row.is_a?(Array)}.compact.max
 		end
 
-		twidth = Table.adjust_column_widths(col_widths, min_widths, buf.width)
-
-		ypos = 0
+		twidth = Table.adjust_column_widths(col_widths, min_widths, buf.width, extra: chrome_width(ncolumns))
 
 		left_pad = case @table_position
 			when "left"
@@ -442,13 +473,17 @@ class Table < Entry
 				raise "unknown table.position: #{@table_position}"
 		end
 
+		return render_compact(buf, col_widths, ncolumns, left_pad) if @compact
+
+		ypos = 0
+
 		if @arr.first.first
 			buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╔" + ("═" * (twidth-2)) + "╗"))
 		else
 			buf.write(left_pad, ypos, DecoratedText.new(@table_color, "╔" + col_widths.map{|w| "═" * (w+2)}.join("╤") + "╗"))
 		end
 		ypos += 1
-		@arr.each_with_index do |(is_header, row), rownum|
+		@arr.each_with_index do |(is_header, row, _), rownum|
 			lines_this_row = row.zip(col_widths).map { |cell, w| cell.height(w) }.max
 
 			# draw the left-edge vertical line at the start of the row
@@ -500,6 +535,36 @@ class Table < Entry
 
 			buf.write(left_pad, ypos, DecoratedText.new(@table_color, l + col_widths.map{|w| h * (w+2)}.join(d) + r))
 			ypos += 1
+		end
+		ypos + 1
+	end
+
+	def render_compact(buf, col_widths, ncolumns, left_pad)
+		pad = @compact_padding
+		gutter = 2 * pad + 1
+		ypos = 0
+		@arr.each do |_is_header, row, codes|
+			lines_this_row = row.zip(col_widths).map { |cell, w| cell.height(w) }.max
+			(0...lines_this_row).each do |rowline|
+				line = DecoratedText.new
+				line << DecoratedTextSegment.new(codes, " " * pad) if pad > 0
+				row.each_with_index do |cell, colnum|
+					w = col_widths[colnum]
+					parts = cell.wrap(w)
+					part = parts[rowline]
+					used = part ? part.width : 0
+					line.push_all(part) if part
+					if w - used > 0
+						line << DecoratedTextSegment.new(codes, " " * (w - used))
+					end
+					if colnum < ncolumns - 1
+						line << DecoratedTextSegment.new(codes, " " * gutter)
+					end
+				end
+				line << DecoratedTextSegment.new(codes, " " * pad) if pad > 0
+				buf.write(left_pad, ypos + rowline, line)
+			end
+			ypos += lines_this_row
 		end
 		ypos + 1
 	end
@@ -716,10 +781,19 @@ class TerminalPoint
 	end
 
 	# [DSL] add a table element to the slide
-	#   t: an array of table rows.  Each row is an array of markdown or ANSI text for a cell.
-	#      A special row value :header indicates that the next row should be displayed as a header.
-	def table(t)
-		@slides.last << Table.new(t)
+	#   args: an optional `:compact` flag, followed by an array of table rows.  Each row is an
+	#      array of markdown or ANSI text for a cell.  A special row value :header indicates
+	#      that the next row should be displayed as a header.  When `:compact` is passed,
+	#      the table renders without borders, with bold white-on-dark-blue headers and
+	#      alternating black-on-white / black-on-light-grey rows.
+	def table(*args)
+		compact = false
+		if args.first == :compact
+			compact = true
+			args.shift
+		end
+		raise "table expects one array argument (optionally preceded by :compact)" unless args.size == 1 && args.first.is_a?(Array)
+		@slides.last << Table.new(args.first, compact: compact)
 	end
 
 	# [DSL] add a fixed-format element to the slide
